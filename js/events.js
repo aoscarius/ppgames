@@ -25,13 +25,12 @@ function setupEventListeners(){
     if(room){
         document.getElementById('contextActionContainer').innerHTML=`<button id="joinTableBtn" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow transition flex items-center justify-center gap-2"><i class="fa-solid fa-right-to-bracket"></i><span>${t('joinBtn')} Table (${room})</span></button>`;
         document.getElementById('joinTableBtn').onclick=()=>enterGameSelection(false);
+    } else {
+        // "Create New Table (Host)": become the host (initHostLocally) and go
+        // live on the P2P network (initPeerNetwork), then swap from the
+        // welcome screen to the game screen.
+        document.getElementById('createTableBtn').onclick=()=>enterGameSelection(true);
     }
-    
-    // "Create New Table (Host)": become the host (initHostLocally) and go
-    // live on the P2P network (initPeerNetwork), then swap from the
-    // welcome screen to the game screen.
-    document.getElementById('createTableBtn').onclick=()=>enterGameSelection(true);
-
     // "Join" with a manually-typed room ID (as opposed to the invite-link
     // shortcut above).
     document.getElementById('manualJoinBtn').onclick=()=>{

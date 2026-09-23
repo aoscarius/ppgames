@@ -50,3 +50,46 @@
             0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.4), 0 0 0 2px rgba(34, 197, 94, 0.6); }
             50% { box-shadow: 0 0 22px rgba(34, 197, 94, 0.9), 0 0 0 4px rgba(34, 197, 94, 0.9); }
         }
+
+
+/* --- Poker visual polish --- */
+.poker-card {
+    width: clamp(58px, 7.2vw, 92px);
+    aspect-ratio: 5 / 7;
+    height: auto !important;
+    flex: 0 0 auto;
+    border-radius: clamp(6px, .8vw, 10px);
+    box-shadow: 0 5px 12px rgba(0,0,0,.30), 0 12px 28px rgba(0,0,0,.18);
+    transform: translateZ(0);
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+.poker-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0,0,0,.34), 0 16px 32px rgba(0,0,0,.20);
+}
+#holeCards .card, #communityCards .card, .card.poker-card {
+    aspect-ratio: 5 / 7;
+    height: auto;
+    min-height: 0;
+}
+.poker-seat {
+    position: absolute !important;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    transition: left .35s ease, top .35s ease, transform .25s ease, filter .25s ease;
+}
+.poker-seat.active-player {
+    animation: pokerActivePulse 1.45s ease-in-out infinite;
+    z-index: 15;
+}
+@keyframes pokerActivePulse {
+    0%,100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.035); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .poker-seat, .poker-card { transition: none; }
+    .poker-seat.active-player { animation: none; }
+}
+@media (max-width: 640px) {
+    .poker-card { width: clamp(50px, 15vw, 72px); }
+}

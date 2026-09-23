@@ -7,7 +7,33 @@
 // state change (see game-logic.js, network.js, events.js) rather than
 // doing incremental DOM patching. Wrapped in a try/catch so a rendering
 // bug logs an error instead of silently breaking the whole page.
+
+function getRadialSeatPosition(seatIndex, seatCount){
+    // Seat 0 is the bottom anchor; all seats are then evenly spaced around
+    // an ellipse, producing a symmetric radial table for 2..8 players.
+    const angle = (Math.PI / 2) - (seatIndex * (Math.PI * 2 / seatCount));
+    const rx = 43;
+    const ry = 39;
+    return {
+        left: `${50 + Math.cos(angle) * rx}%`,
+        top: `${50 + Math.sin(angle) * ry}%`
+    };
+}
+function positionPokerSeats(){
+    const seatCount = Math.max(2, Math.min(8, gameState.maxSeats || 8));
+    for(let i=0;i<8;i++){
+        const el=document.getElementById(`seat-${i}`);
+        if(!el) continue;
+        if(i>=seatCount){ el.classList.add('hidden'); continue; }
+        el.classList.remove('hidden');
+        const pos=getRadialSeatPosition(i, seatCount);
+        el.style.left=pos.left;
+        el.style.top=pos.top;
+    }
+}
+
 function renderTableUI(){
+    positionPokerSeats();
     try{
         // --- Top info bar: pot size, current bet to call, game phase/status text ---
         document.getElementById('potDisplay').textContent=money(gameState,gameState.pot);
@@ -26,7 +52,9 @@ function renderTableUI(){
         
         // --- The 8 seats around the table ---
         for(let i=0;i<8;i++){
-            const el=document.getElementById(`seat-${i}`),p=gameState.players[i];if(!el)continue; el.classList.toggle('hidden', i>=gameState.maxSeats);
+            const el=document.getElementById(`seat-${i}`),p=gameState.players[i];if(!el)continue; 
+            el.classList.toggle('hidden', i>=gameState.maxSeats); 
+            el.classList.toggle('active-player', !!p && gameState.activeTurnSeat===i && gameState.status!=='lobby');
             // Empty seat: just show a placeholder "Seat N" slot.
             if(!p){el.innerHTML=`<div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-dashed border-slate-700/60 bg-slate-950/40 flex items-center justify-center text-slate-600 text-[9px] sm:text-[10px] font-bold">${t('seat', {num: i+1})}</div>`;continue;}
             const turn=gameState.status==='in-progress'&&gameState.activeTurnSeat===i, local=p.id===gameState.myPlayerId;
