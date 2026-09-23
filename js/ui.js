@@ -10,8 +10,8 @@
 function renderTableUI(){
     try{
         // --- Top info bar: pot size, current bet to call, game phase/status text ---
-        document.getElementById('potDisplay').textContent=`$${gameState.pot}`;
-        document.getElementById('currentBetDisplay').textContent=`$${gameState.currentHighBet||gameState.currentBet||0}`;
+        document.getElementById('potDisplay').textContent=money(gameState,gameState.pot);
+        document.getElementById('currentBetDisplay').textContent=money(gameState,gameState.currentHighBet||gameState.currentBet||0);
         
         let phaseDisplay = gameState.phase;
         if (gameState.phase === 'LOBBY WAITING') phaseDisplay = t('lobbyWaiting');
@@ -20,12 +20,13 @@ function renderTableUI(){
         
         // --- Variant label and the shared community cards in the middle of the felt ---
         document.getElementById('variantLabel').textContent=gameState.variant==='holdem'?"Texas Hold'em":"5-Card Draw";
+        const cfg=document.getElementById('tableConfigLabel'); if(cfg) cfg.textContent=`${currencySymbol(gameState)}${gameState.startingStack} · ${gameState.maxSeats} ${t('players')} · ${money(gameState,gameState.smallBlind)}/${money(gameState,gameState.bigBlind)}`;
         const cc=document.getElementById('communityCards');
         cc.innerHTML=gameState.communityCards.length?gameState.communityCards.map(c=>cardHTML(c)).join(''):`<span class="text-slate-400 text-[11px] sm:text-xs italic">${gameState.status==='in-progress'?t('noCommunityCards'):t('waitingDealer')}</span>`;
         
         // --- The 8 seats around the table ---
         for(let i=0;i<8;i++){
-            const el=document.getElementById(`seat-${i}`),p=gameState.players[i];if(!el)continue;
+            const el=document.getElementById(`seat-${i}`),p=gameState.players[i];if(!el)continue; el.classList.toggle('hidden', i>=gameState.maxSeats);
             // Empty seat: just show a placeholder "Seat N" slot.
             if(!p){el.innerHTML=`<div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-dashed border-slate-700/60 bg-slate-950/40 flex items-center justify-center text-slate-600 text-[9px] sm:text-[10px] font-bold">${t('seat', {num: i+1})}</div>`;continue;}
             const turn=gameState.status==='in-progress'&&gameState.activeTurnSeat===i, local=p.id===gameState.myPlayerId;
@@ -66,6 +67,7 @@ function renderTableUI(){
         // --- Host-only admin panel (deal/variant/bot controls), and the
         // spectator banner shown to anyone not seated once a hand is live ---
         document.getElementById('hostAdminPanel').classList.toggle('hidden',!gameState.isHost);
+        renderRoomHistory();
         const startBtn=document.getElementById('startGameBtn'); if(startBtn) startBtn.disabled=gameState.status==='in-progress';
         document.getElementById('spectatorBanner').classList.toggle('hidden',!(mySeat<0&&gameState.status==='in-progress'));
         
@@ -108,4 +110,37 @@ function renderTableUI(){
         drawBtn.textContent = t('draw');
         drawBtn.disabled=!drawPhase;
     }catch(e){logMessage(`Render error: ${e.message}`,'error');}
+}
+
+function showScreen(id){
+    ['welcomeScreen','gameSelectionScreen','pokerConfigScreen','gameScreen'].forEach(x=>document.getElementById(x)?.classList.add('hidden'));
+    document.getElementById(id)?.classList.remove('hidden');
+}
+function selectedGameLabel(id){
+    return id==='poker'?t('pokerGame'):id==='chess'?t('chessGame'):id==='othello'?t('othelloGame'):t('navalGame');
+}
+function readPokerConfig(){
+    return {
+        currency:document.getElementById('currencySelect').value,
+        startingStack:Number(document.getElementById('startingStackInput').value),
+        maxSeats:Number(document.getElementById('maxSeatsSelect').value),
+        smallBlind:Number(document.getElementById('smallBlindInput').value),
+        bigBlind:Number(document.getElementById('bigBlindInput').value)
+    };
+}
+function validatePokerConfig(c){
+    if(!Number.isFinite(c.startingStack)||c.startingStack<=0)return t('stackError');
+    if(!Number.isInteger(c.maxSeats)||c.maxSeats<2||c.maxSeats>8)return t('minMaxSeats');
+    if(!Number.isFinite(c.smallBlind)||c.smallBlind<=0||!Number.isFinite(c.bigBlind)||c.bigBlind<c.smallBlind)return t('blindsError');
+    return '';
+}
+function openPokerConfig(){
+    document.getElementById('currencySelect').value=gameState.currency;
+    document.getElementById('startingStackInput').value=gameState.startingStack;
+    document.getElementById('maxSeatsSelect').value=gameState.maxSeats;
+    document.getElementById('smallBlindInput').value=gameState.smallBlind;
+    document.getElementById('bigBlindInput').value=gameState.bigBlind;
+    document.getElementById('configError').classList.add('hidden');
+    document.getElementById('pokerConfigContinueBtn').disabled=!gameState.isHost;
+    showScreen('pokerConfigScreen');
 }

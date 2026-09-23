@@ -78,23 +78,33 @@ function hostHandleAction(data,conn){
 function handleNetworkData(data,conn){
     if(!data)return;
     if(data.type==='JOIN_REQUEST'&&gameState.isHost){
-        const empty=gameState.players.findIndex(p=>!p);
+        if(data.gameId && data.gameId!==gameState.gameId){
+            sendTo(conn,{type:'JOIN_ERROR',message:t('invalidGame')}); return;
+        }
+        const empty=gameState.players.findIndex((p,i)=>!p && i<gameState.maxSeats);
         if(gameState.status==='lobby'&&empty>=0){
-            gameState.players[empty]=data.player;sendTo(conn,{type:'WELCOME_SYNC',state:publicStateFor(data.player.id)});
-            appendChatMessage('System',`${data.player.name} joined Seat ${empty+1}.`,true);
+            const player={...data.player,chips:gameState.startingStack};
+            gameState.players[empty]=player;
+            sendTo(conn,{type:'WELCOME_SYNC',state:publicStateFor(player.id)});
+            appendChatMessage('System',`${player.name} joined Seat ${empty+1}.`,true);
+        } else if(gameState.status==='lobby' && gameState.players.filter(Boolean).length>=gameState.maxSeats){
+            sendTo(conn,{type:'JOIN_ERROR',message:t('roomFull')}); return;
         } else {
             gameState.spectators.push(data.player);sendTo(conn,{type:'WELCOME_SYNC',state:publicStateFor(data.player.id)});
         }
         peerConnections[conn.peer]=conn;broadcastState();renderTableUI();
     } else if(data.type==='ACTION_REQUEST'&&gameState.isHost) hostHandleAction(data,conn);
     else if(data.type==='START_REQUEST'&&gameState.isHost) startHand();
+    else if(data.type==='GAME_SELECT'&&gameState.isHost&&gameState.status==='lobby'){ if(data.gameId===gameState.gameId){ sendTo(conn,{type:'GAME_ACCEPTED',gameId:gameState.gameId,state:publicStateFor(data.playerId)}); } else sendTo(conn,{type:'JOIN_ERROR',message:t('invalidGame')}); }
+    else if(data.type==='TABLE_CONFIG'&&gameState.isHost&&gameState.status==='lobby'){ applyTableConfig(data.config); broadcastState(); renderTableUI(); }
     else if(data.type==='VARIANT_REQUEST'&&gameState.isHost&&gameState.status==='lobby'){gameState.variant=data.variant==='5card'?'5card':'holdem';broadcastState();renderTableUI();}
-    else if(data.type==='CHAT'){appendChatMessage(data.sender,data.text,false);if(gameState.isHost)broadcastPacket(data);}
+    else if(data.type==='CHAT'&&data.roomId===gameState.roomId){appendChatMessage(data.sender,data.text,false);if(gameState.isHost)broadcastPacket(data);}
     else if(data.type==='WELCOME_SYNC'||data.type==='STATE_UPDATE'){
         Object.assign(gameState,data.state);
         gameState.players=new Array(8).fill(null).map((_,i)=>data.state.players?.[i]||null);
         renderTableUI();scheduleBot();
-    } else if(data.type==='ACTION_ERROR')alert(data.message);
+    } else if(data.type==='JOIN_ERROR'){ alert(data.message); showScreen('gameSelectionScreen'); }
+    else if(data.type==='ACTION_ERROR')alert(data.message);
 }
 // Host only: relay a packet (currently just chat messages) to every
 // connected client verbatim, so a chat message from one client reaches
@@ -107,9 +117,25 @@ function broadcastPacket(packet){Object.values(peerConnections).forEach(c=>{if(c
 // host's own PeerJS address, meaning clients connect directly to the
 // host's peer). Seats the host in seat 0, updates the URL with a
 // `?room=` query param so the invite link works, and renders the lobby.
+
+function applyTableConfig(config={}){
+    const currency=config.currency==='EUR'?'EUR':'USD';
+    const startingStack=Number(config.startingStack);
+    const maxSeats=Math.max(2,Math.min(8,Math.floor(Number(config.maxSeats))));
+    const smallBlind=Number(config.smallBlind);
+    const bigBlind=Number(config.bigBlind);
+    if(!Number.isFinite(startingStack)||startingStack<=0) return {ok:false,error:t('stackError')};
+    if(!Number.isFinite(maxSeats)||maxSeats<2||maxSeats>8) return {ok:false,error:t('minMaxSeats')};
+    if(!Number.isFinite(smallBlind)||smallBlind<=0||!Number.isFinite(bigBlind)||bigBlind<smallBlind) return {ok:false,error:t('blindsError')};
+    gameState.currency=currency; gameState.startingStack=startingStack; gameState.maxSeats=maxSeats;
+    gameState.smallBlind=smallBlind; gameState.bigBlind=bigBlind; gameState.minRaise=bigBlind;
+    gameState.players.forEach(p=>{if(p && gameState.status==='lobby') p.chips=startingStack;});
+    return {ok:true};
+}
+
 function initHostLocally(username){
-    gameState.isHost=true;gameState.myPlayerName=username;gameState.myPlayerId=generateId();gameState.hostId=gameState.myPlayerId;gameState.roomId=gameState.myPlayerId;
-    gameState.players[0]={id:gameState.myPlayerId,name:username,chips:1000,currentBet:0,folded:false,isBot:false,cards:[]};
+    gameState.isHost=true;gameState.myPlayerName=username;gameState.myPlayerId=generateId();gameState.hostId=gameState.myPlayerId;gameState.roomId=gameState.myPlayerId;gameState.gameId='poker';gameState.gameName='Poker';loadRoomHistory();
+    gameState.players[0]={id:gameState.myPlayerId,name:username,chips:gameState.startingStack,currentBet:0,folded:false,isBot:false,cards:[]};
     history.pushState({},'',`${location.pathname}?room=${encodeURIComponent(gameState.roomId)}`);
     renderTableUI();
 }
@@ -147,9 +173,9 @@ function initPeerNetwork(){
 // JOIN_REQUEST carrying this player's info. All further messages from the
 // host are routed through handleNetworkData().
 function joinRoomPeer(roomId,username){
-    gameState.isHost=false;gameState.myPlayerName=username;gameState.myPlayerId=generateId();gameState.roomId=roomId;
+    gameState.isHost=false;gameState.myPlayerName=username;gameState.myPlayerId=generateId();gameState.roomId=roomId;loadRoomHistory();
     peerInstance=new Peer(gameState.myPlayerId);
-    peerInstance.on('open',()=>{const conn=peerInstance.connect(roomId);peerConnections[roomId]=conn;conn.on('open',()=>{conn.send({type:'JOIN_REQUEST',player:{id:gameState.myPlayerId,name:username,chips:1000,currentBet:0,folded:false,isBot:false,cards:[]}});});conn.on('data',d=>handleNetworkData(d,conn));conn.on('close',()=>logMessage('Disconnected from host','error'));});
+    peerInstance.on('open',()=>{const conn=peerInstance.connect(roomId);peerConnections[roomId]=conn;conn.on('open',()=>{conn.send({type:'JOIN_REQUEST',gameId:gameState.gameId,player:{id:gameState.myPlayerId,name:username,chips:1000,currentBet:0,folded:false,isBot:false,cards:[]}});});conn.on('data',d=>handleNetworkData(d,conn));conn.on('close',()=>logMessage('Disconnected from host','error'));});
     peerInstance.on('error',e=>logMessage(`PeerJS: ${e.type}`,'error'));
 }
 
@@ -160,7 +186,7 @@ function joinRoomPeer(roomId,username){
 function startHand(){
     if(!gameState.isHost)return;
     const r=initHand(gameState); if(!r.ok){alert(r.error);return;}
-    appendChatMessage('System',`Hand #${gameState.handNumber} started. Blinds $${gameState.smallBlind}/$${gameState.bigBlind}.`,true);
+    appendChatMessage('System',`Hand #${gameState.handNumber} started. Blinds ${money(gameState,gameState.smallBlind)}/${money(gameState,gameState.bigBlind)}.`,true);
     broadcastState();renderTableUI();scheduleBot();
 }
 

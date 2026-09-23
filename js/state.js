@@ -10,13 +10,15 @@
 // (see handleNetworkData() in network.js) and re-render from it (ui.js).
 const gameState = {
     roomId: null, isHost: false, myPlayerId: null, myPlayerName: 'PokerPlayer',
-    hostId: null, status: 'lobby', variant: 'holdem',       // status: 'lobby' | 'in-progress'
+    hostId: null, gameId: 'poker', gameName: 'Poker',
+    status: 'lobby', variant: 'holdem',       // status: 'lobby' | 'in-progress'
     phase: 'LOBBY WAITING', stage: 'lobby',                  // stage: 'lobby' | 'preflop' | 'flop' | 'turn' | 'river' | 'draw' | 'showdown' ...
     pot: 0, currentBet: 0, currentHighBet: 0, minRaise: 20,
+    currency: 'USD', startingStack: 1000, maxSeats: 8,
     smallBlind: 10, bigBlind: 20, dealerSeat: -1, activeTurnSeat: -1,
-    communityCards: [], deck: [], players: new Array(8).fill(null), // fixed 8-seat table; empty seats are null
+    communityCards: [], deck: [], players: new Array(8).fill(null), // max 8 physical seats; table may use fewer
     spectators: [], unreadChat: 0, unreadLogs: 0, handNumber: 0,
-    showdownSummary: ''
+    chatHistory: [], logHistory: [], showdownSummary: ''
 };
 
 // --- P2P / networking runtime state (not part of gameState because it's

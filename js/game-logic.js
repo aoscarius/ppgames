@@ -46,7 +46,7 @@ function bettingComplete(state){
 // Award the entire pot to the single remaining player because everyone
 // else folded (no showdown needed). Records the result and ends the hand.
 function awardSingle(state,winner){
-    winner.chips+=state.pot; winner.lastAction=`Won $${state.pot} (all opponents folded)`;
+    winner.chips+=state.pot; winner.lastAction=`Won ${money(state,state.pot)} (all opponents folded)`;
     state.showdownSummary = t('winnerFoldedLabel', { name: winner.name });
     appendChatMessage('System', state.showdownSummary, true);
     state.pot=0; state.status='hand-ended'; state.stage='ended'; state.phase='SHOWDOWN'; state.activeTurnSeat=-1;
@@ -70,7 +70,7 @@ function resolveShowdown(state){
     winners.forEach((w,i)=>{
         const wonAmount = share + (i===0?remainder:0);
         w.chips += wonAmount;
-        w.lastAction = `Won $${wonAmount} (${localizedHandType(w.evalResult.typeName)})`;
+        w.lastAction = `Won ${money(state,wonAmount)} (${localizedHandType(w.evalResult.typeName)})`;
     });
 
     const handName = localizedHandType(winners[0].evalResult.typeName);
@@ -174,7 +174,7 @@ function initHand(state){
     }
     const seated=state.players
         .map((p,i)=>({p,i}))
-        .filter(x=>x.p && !x.p.spectator && !x.p.isSpectator && x.p.chips>0)
+        .filter(x=>x.i<state.maxSeats && x.p && !x.p.spectator && !x.p.isSpectator && x.p.chips>0)
         .map(x=>x.i);
     if(seated.length<2){
         return {ok:false,error:`NOT_ENOUGH_PLAYERS:${seated.length}`};

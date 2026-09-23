@@ -14,26 +14,100 @@ function setupEventListeners(){
     // one-click "Join Table" button pre-targeting that room instead of
     // making the user paste the room ID manually.
     const room=new URLSearchParams(location.search).get('room');
+    const enterGameSelection=(hostMode)=>{
+        gameState.isHost=hostMode;
+        gameState.myPlayerName=input.value.trim()||'PokerPlayer';
+        gameState.gameId='poker';
+        gameState.gameName='Poker';
+        showScreen('gameSelectionScreen');
+    };
+
     if(room){
         document.getElementById('contextActionContainer').innerHTML=`<button id="joinTableBtn" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow transition flex items-center justify-center gap-2"><i class="fa-solid fa-right-to-bracket"></i><span>${t('joinBtn')} Table (${room})</span></button>`;
-        document.getElementById('joinTableBtn').onclick=()=>{joinRoomPeer(room,input.value.trim()||'PokerPlayer');document.getElementById('welcomeScreen').classList.add('hidden');document.getElementById('gameScreen').classList.remove('hidden');};
+        document.getElementById('joinTableBtn').onclick=()=>enterGameSelection(false);
     }
-
+    
     // "Create New Table (Host)": become the host (initHostLocally) and go
     // live on the P2P network (initPeerNetwork), then swap from the
     // welcome screen to the game screen.
-    document.getElementById('createTableBtn').onclick=()=>{initHostLocally(input.value.trim()||'PokerPlayer');initPeerNetwork();document.getElementById('welcomeScreen').classList.add('hidden');document.getElementById('gameScreen').classList.remove('hidden');};
+    document.getElementById('createTableBtn').onclick=()=>enterGameSelection(true);
 
     // "Join" with a manually-typed room ID (as opposed to the invite-link
     // shortcut above).
-    document.getElementById('manualJoinBtn').onclick=()=>{const r=document.getElementById('joinRoomInput').value.trim();if(!r)return alert('Enter a Room ID');joinRoomPeer(r,input.value.trim()||'PokerPlayer');document.getElementById('welcomeScreen').classList.add('hidden');document.getElementById('gameScreen').classList.remove('hidden');};
+    document.getElementById('manualJoinBtn').onclick=()=>{
+        const r=document.getElementById('joinRoomInput').value.trim();
+        if(!r)return alert('Enter a Room ID');
+        history.replaceState({},'',`${location.pathname}?room=${encodeURIComponent(r)}`);
+        enterGameSelection(false);
+    };
 
-    // Host panel controls: deal a new hand, change the game variant while
-    // still in the lobby, and add/remove AI bot players to fill empty seats.
+    document.querySelectorAll('.game-choice[data-game-id]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            if(btn.disabled)return;
+            gameState.gameId=btn.dataset.gameId;
+            gameState.gameName=selectedGameLabel(gameState.gameId);
+            document.querySelectorAll('.game-choice').forEach(x=>x.classList.remove('ring-2','ring-emerald-400'));
+            btn.classList.add('ring-2','ring-emerald-400');
+        });
+    });
+    document.querySelector('.game-choice[data-game-id="poker"]')?.classList.add('ring-2','ring-emerald-400');
+
+    document.getElementById('gameSelectionBackBtn').onclick=()=>showScreen('welcomeScreen');
+    document.getElementById('gameSelectionContinueBtn').onclick=()=>{
+        if(gameState.gameId!=='poker')return;
+        if(gameState.isHost){
+            openPokerConfig();
+        }else{
+            const r=new URLSearchParams(location.search).get('room');
+            if(!r)return showScreen('welcomeScreen');
+            joinRoomPeer(r,input.value.trim()||'PokerPlayer');
+            showScreen('gameScreen');
+        }
+    };
+
+    document.getElementById('pokerConfigBackBtn').onclick=()=>showScreen('gameSelectionScreen');
+    document.getElementById('pokerConfigContinueBtn').onclick=()=>{
+        const cfg=readPokerConfig(), err=validatePokerConfig(cfg);
+        const box=document.getElementById('configError');
+        if(err){box.textContent=err;box.classList.remove('hidden');return;}
+        const r=applyTableConfig(cfg);
+        if(!r.ok){box.textContent=r.error;box.classList.remove('hidden');return;}
+        initHostLocally(input.value.trim()||'PokerPlayer');
+        initPeerNetwork();
+        showScreen('gameScreen');
+        renderTableUI();
+    };
+
     document.getElementById('startGameBtn').onclick=startHand;
-    document.getElementById('variantSelect').onchange=e=>{if(gameState.isHost&&gameState.status==='lobby'){gameState.variant=e.target.value;broadcastState();renderTableUI();}};
-    document.getElementById('addBotBtn').onclick=()=>{if(!gameState.isHost||gameState.status!=='lobby')return;const i=gameState.players.findIndex(p=>!p);if(i<0)return alert('Table is full');const names=['BluffBot','HoldemAI','Stacker','AceBot','ChipMaster'];gameState.players[i]={id:'bot-'+generateId(),name:names[Math.floor(Math.random()*names.length)],chips:1000,currentBet:0,folded:false,isBot:true,cards:[]};broadcastState();renderTableUI();};
-    document.getElementById('removeBotBtn').onclick=()=>{if(!gameState.isHost||gameState.status!=='lobby')return;const i=gameState.players.findLastIndex(p=>p?.isBot);if(i>=0){gameState.players[i]=null;broadcastState();renderTableUI();}};
+    document.getElementById('variantSelect').onchange=e=>{
+        if(gameState.isHost&&gameState.status==='lobby'){
+            gameState.variant=e.target.value;broadcastState();renderTableUI();
+        }
+    };
+    document.getElementById('addBotBtn').onclick=()=>{
+        if (!gameState.isHost||gameState.status!=='lobby') return;
+        const i=gameState.players.findIndex((p,idx)=>!p&&idx<gameState.maxSeats);
+        if (i<0) return alert('Table is full');
+        const names = [
+            'BluffBot', 'HoldemAI', 'Stacker', 'AceBot', 'ChipMaster',
+            'DeepStack', 'NeuralFold', 'AlgoReraise', 'QuantumRiver', 'ByteBluff', 'CyberDealer', 'NashBot',
+            'NutFlush', 'FullHouseAI', 'PocketAces', 'RoyalBot', 'KickerAI', 'DeadMansHand',
+            'SharkMind', 'CheckRaise', 'ShowdownBot', 'VPIP_Master', 'SlowPlay', 'TiltProof', 'GTO_Matrix',
+            'HighRoller', 'StackOverflow', 'AllInAndroid', 'BigBlind', 'FeltStripper', 'MuckMachine'
+        ];
+        gameState.players[i]={id:'bot-'+generateId(),name:names[Math.floor(Math.random()*names.length)],chips:gameState.startingStack,currentBet:0,folded:false,isBot:true,cards:[]};
+        broadcastState();
+        renderTableUI();
+    };
+    document.getElementById('removeBotBtn').onclick=()=>{
+        if(!gameState.isHost||gameState.status!=='lobby')return;
+        const i=gameState.players.findLastIndex(p=>p?.isBot&&gameState.players.indexOf(p)<gameState.maxSeats);
+        if(i>=0){
+            gameState.players[i]=null;
+            broadcastState();
+            renderTableUI();
+        }
+    };
 
     // Player action buttons: each simply calls requestAction() (network.js),
     // which either applies the action locally (if we're the host) or asks
@@ -41,14 +115,24 @@ function setupEventListeners(){
     // figures out which of the two actions actually applies based on
     // whether the local player is currently facing a bet.
     document.getElementById('foldBtn').onclick=()=>requestAction('fold');
-    document.getElementById('checkCallBtn').onclick=()=>{const s=gameState.players.findIndex(p=>p?.id===gameState.myPlayerId);requestAction(gameState.currentHighBet>(gameState.players[s]?.currentBet||0)?'call':'check');};
+    document.getElementById('checkCallBtn').onclick=()=>{
+        const s=gameState.players.findIndex(p=>p?.id===gameState.myPlayerId);
+        requestAction(gameState.currentHighBet>(gameState.players[s]?.currentBet||0)?'call':'check');
+    };
     document.getElementById('raiseBtn').onclick=()=>requestAction('raise',Number(document.getElementById('raiseInput').value));
 
     // Copy the current page URL (which contains the ?room= invite link
     // once hosting has started) to the clipboard so it can be shared;
     // falls back to showing it in an alert if clipboard access fails.
-    document.getElementById('shareRoomBtn').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);alert('Invite link copied!');}catch{alert(location.href);}};
-    
+    document.getElementById('shareRoomBtn').onclick=async()=>{
+        try{
+            await navigator.clipboard.writeText(location.href);
+            alert('Invite link copied!');
+        } catch {
+            alert(location.href);
+        }
+    };
+
     // Language Toggle Switch Handler
     // Flip between English/Italian, refresh every static translated
     // string, then re-render the table so dynamic text picks it up too.
@@ -71,8 +155,20 @@ function setupEventListeners(){
     // gets it; if we're a client this reaches the host, which itself
     // relays CHAT packets on to everyone else -- see handleNetworkData()
     // in network.js).
-    document.getElementById('chatForm').onsubmit=e=>{e.preventDefault();const x=document.getElementById('chatInput'),t=x.value.trim();if(!t)return;appendChatMessage(gameState.myPlayerName,t);broadcastPacket({type:'CHAT',sender:gameState.myPlayerName,text:t});x.value='';};
+    document.getElementById('chatForm').onsubmit=e=>{
+        e.preventDefault();
+        const x=document.getElementById('chatInput'),tt=x.value.trim();if(!tt)return;
+        const packet={type:'CHAT',roomId:gameState.roomId,sender:gameState.myPlayerName,text:tt};
+        appendChatMessage(gameState.myPlayerName,tt);
+        if(gameState.isHost)broadcastPacket(packet);
+        else{
+            const host=Object.values(peerConnections)[0];
+            if(host?.open)host.send(packet);
+        }
+        x.value='';
+    };
 }
+
 
 // Global delegated click handler for selecting/deselecting hole cards to
 // discard during the 5-card draw variant's draw phase. Cards are marked
@@ -92,6 +188,6 @@ document.addEventListener('click',e=>{
 window.addEventListener('DOMContentLoaded',()=>{
     setupEventListeners();
     updateStaticTranslations();
-    renderTableUI();
-    logMessage('P2P Poker Engine with IT/EN localization initialized.','success');
+    showScreen('welcomeScreen');
+    logMessage('P2P Game Engine with IT/EN localization initialized.','success');
 });

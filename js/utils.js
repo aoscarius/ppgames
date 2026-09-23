@@ -6,6 +6,32 @@
 // Not cryptographically secure -- just needs to be unique enough locally.
 function generateId() { return 'poker-' + Math.random().toString(36).slice(2,9); }
 
+function currencySymbol(state=gameState){
+    return state.currency === 'EUR' ? '€' : '$';
+}
+function money(state, amount){
+    const value = Number(amount || 0);
+    return `${currencySymbol(state)}${value.toLocaleString(currentLang === 'it' ? 'it-IT' : 'en-US', {maximumFractionDigits: 2})}`;
+}
+function roomStorageKey(kind, roomId=gameState.roomId){
+    return `p2p-game:${kind}:${roomId || 'local'}`;
+}
+function loadRoomHistory(){
+    try{
+        gameState.chatHistory = JSON.parse(sessionStorage.getItem(roomStorageKey('chat')) || '[]');
+        gameState.logHistory = JSON.parse(sessionStorage.getItem(roomStorageKey('logs')) || '[]');
+    }catch{
+        gameState.chatHistory=[]; gameState.logHistory=[];
+    }
+}
+function saveRoomHistory(){
+    try{
+        sessionStorage.setItem(roomStorageKey('chat'), JSON.stringify(gameState.chatHistory.slice(-200)));
+        sessionStorage.setItem(roomStorageKey('logs'), JSON.stringify(gameState.logHistory.slice(-300)));
+    }catch{}
+}
+
+
 // Seated players who are still able to play (have chips and aren't
 // spectating). Used e.g. to decide when a hand can start.
 function activePlayers(state=gameState) {
@@ -40,36 +66,68 @@ function nextSeat(state, start, predicate=eligibleToAct) {
 // by severity, and bump the unread-logs badge if that drawer is currently
 // closed. Used throughout game-logic.js and network.js to trace what's
 // happening (hand dealt, action taken, connection events, errors, etc).
-function logMessage(msg, type='info') {
+function logMessage(msg, type='info'){
+    const line = {time:new Date().toLocaleTimeString(), msg:String(msg), type};
+    gameState.logHistory.push(line); saveRoomHistory();
     const box = document.getElementById('logMessages'); if (!box) return;
-    const e = document.createElement('div');
-    const color = type==='error'?'text-rose-400':type==='success'?'text-emerald-400':'text-slate-400';
-    e.className = color+' leading-snug';
-    e.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    box.appendChild(e); box.scrollTop = box.scrollHeight;
-    if (document.getElementById('logsDrawer')?.classList.contains('translate-x-full')) {
+    const e=document.createElement('div');
+    const color=type==='error'?'text-rose-400':type==='success'?'text-emerald-400':'text-slate-400';
+    e.className=color+' leading-snug';
+    e.textContent=`[${line.time}] ${line.msg}`;
+    box.appendChild(e); box.scrollTop=box.scrollHeight;
+    if(document.getElementById('logsDrawer')?.classList.contains('translate-x-full')){
         gameState.unreadLogs++;
         const b=document.getElementById('logsBadge'); b.textContent=gameState.unreadLogs; b.classList.remove('hidden');
     }
 }
-// Add one message bubble to the table-chat drawer. `isSystem` renders it
-// as a highlighted system notice instead of a normal player message, and
-// bumps the unread-chat badge if the chat drawer is currently closed.
-function appendChatMessage(sender,text,isSystem=false) {
-    const box=document.getElementById('chatMessages'); if(!box) return;
+function appendChatMessage(sender,text,isSystem=false){
+    const message={sender:String(sender),text:String(text),isSystem:!!isSystem,time:Date.now(),roomId:gameState.roomId};
+    gameState.chatHistory.push(message); saveRoomHistory();
+    const box=document.getElementById('chatMessages'); if(!box)return;
     const e=document.createElement('div');
-    if(isSystem){ e.className='text-[11px] text-amber-400 bg-amber-950/40 p-1.5 rounded border border-amber-800/40 font-medium'; e.textContent=text; }
-    else {
+    if(isSystem){
+        e.className='text-[11px] text-amber-400 bg-amber-950/40 p-1.5 rounded border border-amber-800/40 font-medium';
+        e.textContent=text;
+    }else{
         e.className='bg-slate-800 p-2 rounded-xl border border-slate-700/60';
         const n=document.createElement('div'); n.className='font-extrabold text-emerald-400 text-[10px]'; n.textContent=sender;
-        const t=document.createElement('div'); t.className='text-slate-200 mt-0.5 text-xs'; t.textContent=text;
-        e.append(n,t);
+        const tt=document.createElement('div'); tt.className='text-slate-200 mt-0.5 text-xs'; tt.textContent=text;
+        e.append(n,tt);
     }
     box.appendChild(e); box.scrollTop=box.scrollHeight;
     if(document.getElementById('chatDrawer')?.classList.contains('translate-x-full')){
-        gameState.unreadChat++; const b=document.getElementById('chatBadge'); b.textContent=gameState.unreadChat; b.classList.remove('hidden');
+        gameState.unreadChat++;
+        const b=document.getElementById('chatBadge'); b.textContent=gameState.unreadChat; b.classList.remove('hidden');
     }
 }
+function renderRoomHistory(){
+    const chat=document.getElementById('chatMessages'), logs=document.getElementById('logMessages');
+    if(chat){
+        chat.innerHTML='';
+        gameState.chatHistory.filter(m=>m.roomId===gameState.roomId).forEach(m=>{
+            const e=document.createElement('div');
+            if(m.isSystem){
+                e.className='text-[11px] text-amber-400 bg-amber-950/40 p-1.5 rounded border border-amber-800/40 font-medium'; e.textContent=m.text;
+            }else{
+                e.className='bg-slate-800 p-2 rounded-xl border border-slate-700/60';
+                const n=document.createElement('div'); n.className='font-extrabold text-emerald-400 text-[10px]'; n.textContent=m.sender;
+                const tt=document.createElement('div'); tt.className='text-slate-200 mt-0.5 text-xs'; tt.textContent=m.text; e.append(n,tt);
+            }
+            chat.appendChild(e);
+        });
+        chat.scrollTop=chat.scrollHeight;
+    }
+    if(logs){
+        logs.innerHTML='';
+        gameState.logHistory.forEach(line=>{
+            const e=document.createElement('div');
+            const color=line.type==='error'?'text-rose-400':line.type==='success'?'text-emerald-400':'text-slate-400';
+            e.className=color+' leading-snug'; e.textContent=`[${line.time}] ${line.msg}`; logs.appendChild(e);
+        });
+        logs.scrollTop=logs.scrollHeight;
+    }
+}
+
 // Build a fresh, unshuffled 52-card deck as {suit, rank, value} objects,
 // combining every suit with every rank (see SUITS/RANKS/VALUES in state.js).
 function createDeck(){
