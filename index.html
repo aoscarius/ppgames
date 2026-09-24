@@ -204,6 +204,8 @@
                 </div>
             </div>
 
+            <div id="gamePhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-emerald-300 text-center">Lobby Waiting</div>
+
             <!-- Header Right Action Counters & Share -->
             <div class="flex items-center space-x-1.5 sm:space-x-2">
                 <button id="langToggleBtn" title="Switch language / Cambia lingua" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition">
@@ -240,7 +242,7 @@
 
             <!-- Responsive Table Felt Container -->
             <div class="w-full max-w-6xl my-auto relative flex flex-col items-center justify-center">
-                <div class="w-full aspect-[1.35/1] sm:aspect-[1.85/1] max-h-[66vh] rounded-[90px] sm:rounded-[180px] poker-felt relative flex flex-col items-center justify-center p-3 sm:p-6">
+                <div class="w-full aspect-[1.35/1] max-h-[66vh] rounded-[90px] sm:rounded-[180px] poker-felt relative flex flex-col items-center justify-center p-3 sm:p-6">
                     <div class="absolute inset-3 sm:inset-6 rounded-[75px] sm:rounded-[160px] border border-emerald-400/20 pointer-events-none"></div>
                     <div class="absolute inset-[9%] rounded-[70px] sm:rounded-[140px] border border-white/5 pointer-events-none"></div>
 
@@ -259,11 +261,9 @@
                         <div id="communityCards" class="flex items-center justify-center gap-1 sm:gap-2 min-h-[54px] sm:min-h-[76px] w-full">
                             <span class="text-slate-400 text-[11px] sm:text-xs italic" data-i18n="waitingDealer">Waiting for dealer...</span>
                         </div>
-                        <div id="gamePhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-emerald-300 text-center">Lobby Waiting</div>
-                        <button id="startGameBtn" disabled class="deal-hand-btn px-5 sm:px-7 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-xs sm:text-sm font-black shadow-lg disabled:opacity-35 disabled:pointer-events-none transition flex items-center gap-2">
-                            <i class="fa-solid fa-clover text-amber-200"></i><span data-i18n="dealHand">Deal Hand</span>
-                        </button>
-                        <span id="dealHint" class="text-[9px] text-slate-500" data-i18n="dealHint">Only the host can deal</span>
+                        <div id="playerHandSummary" class="text-xs font-bold text-slate-300 px-2 text-ellipse hidden sm:block">
+                            Your Turn
+                        </div>
                     </div>
 
                     <div id="seat-0" class="poker-seat"></div>
@@ -282,10 +282,9 @@
                 
                 <!-- Player Gameplay Action Buttons -->
                 <div class="bg-slate-900/90 border border-slate-800 p-2 rounded-2xl flex items-center justify-between gap-2 backdrop-blur-md">
-                    <div id="playerHandSummary" class="text-xs font-bold text-slate-300 px-2 truncate hidden sm:block">
-                        Your Turn
-                    </div>
-
+                    <button id="startGameBtn" disabled class="deal-hand-btn px-3.5 sm:px-5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
+                        <i class="fa-solid fa-clover text-amber-200"></i><span data-i18n="dealHand">Deal Hand</span>
+                    </button>
                     <div id="actionControls" class="flex items-center justify-end gap-1.5 sm:gap-2 w-full">
                         <button id="foldBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 border border-rose-800/60 text-xs font-extrabold transition" data-i18n="fold">
                             Fold
