@@ -68,6 +68,7 @@ const TRANSLATIONS = {
         check: "Check",
         call: "Call",
         raise: "Raise",
+        allIn: "All-in",
         draw: "Draw",
         tableChat: "Table Chat",
         chatPlaceholder: "Chat room connected. Send a message!",
@@ -83,7 +84,6 @@ const TRANSLATIONS = {
         winnersLabel: "Winners: {names} ({hand})",
         winnerFoldedLabel: "Winner: {name} (All folded)",
         folded: "Folded",
-        allIn: "All-in",
         seat: "Seat {num}",
         addBot: "Add bot", removeBot: "Remove bot", kickPlayer: "Kick player", playerKicked: "was removed from the table", kickedFromTable: "You were removed from the table.", confirmKick: "Remove this player from the table?", hostOnly: "Only the host can deal", hostReady: "Host controls the deal", dealHint: "Only the host can deal",
         handTypes: {
@@ -150,6 +150,7 @@ const TRANSLATIONS = {
         check: "Check",
         call: "Chiama",
         raise: "Rilancia",
+        allIn: "All-in",
         draw: "Cambia",
         tableChat: "Chat del Tavolo",
         chatPlaceholder: "Chat connessa. Invia un messaggio!",
@@ -165,7 +166,6 @@ const TRANSLATIONS = {
         winnersLabel: "Vincitori: {names} ({hand})",
         winnerFoldedLabel: "Vincitore: {name} (Tutti ritirati)",
         folded: "Ritirato",
-        allIn: "All-in",
         seat: "Posto {num}",
         addBot: "Aggiungi bot", removeBot: "Rimuovi bot", kickPlayer: "Espelli giocatore", playerKicked: "è stato rimosso dal tavolo", kickedFromTable: "Sei stato rimosso dal tavolo.", confirmKick: "Rimuovere questo giocatore dal tavolo?", hostOnly: "Solo l'host può distribuire", hostReady: "L'host controlla la distribuzione", dealHint: "Solo l'host può distribuire",
         handTypes: {

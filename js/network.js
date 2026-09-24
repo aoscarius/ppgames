@@ -19,6 +19,7 @@ function publicStateFor(peerId){
     copy.myPlayerId=null;
     copy.myPlayerName='';
     copy.hostId=gameState.hostId;
+    copy.hostPlayerId=gameState.hostPlayerId;
     copy.network={hostId:gameState.hostId,roomId:gameState.roomId,connectedPlayerIds:getConnectedPlayerIds()};
     const revealAll=copy.phase==='SHOWDOWN';
     copy.players.forEach(p=>{
@@ -35,6 +36,7 @@ function fullHostStateFor(){
     copy.network={hostId:gameState.hostId,roomId:gameState.roomId,connectedPlayerIds:getConnectedPlayerIds()};
     copy.isHost=true;
     copy.myPlayerId=gameState.myPlayerId;
+    copy.hostPlayerId=gameState.hostPlayerId;
     copy.deck=gameState.deck;
     return copy;
 }
@@ -94,6 +96,7 @@ function applySyncedState(incoming){
     gameState.myPlayerId=keepId;
     gameState.myPlayerName=keepName;
     gameState.isHost=keepHost;
+    if(!gameState.hostPlayerId)gameState.hostPlayerId=incoming.hostPlayerId||incoming.hostId||null;
     gameState.players=new Array(8).fill(null).map((_,i)=>incoming.players?.[i]||null);
     if(!gameState.chatHistory)gameState.chatHistory=[];
     if(!gameState.logHistory)gameState.logHistory=[];
@@ -213,11 +216,11 @@ function handleNetworkData(data,conn){
     else if(data.type==='JOIN_ERROR'){
         clearJoinHandshakeTimer();
         roomJoinConfirmed=false;
-        alert(data.message);
+        showAlert('Network Error', `Network data error occurred: ${data.message}`);
         disconnectNetwork();
         showScreen('welcomeScreen');
     }
-    else if(data.type==='ACTION_ERROR')alert(data.message);
+    else if(data.type==='ACTION_ERROR')showAlert('Network Error', `Network data error occurred: ${data.message}`);
 }
 
 function applyTableConfig(config={}){
@@ -225,19 +228,20 @@ function applyTableConfig(config={}){
     const startingStack=Number(config.startingStack);
     const maxSeats=Math.max(2,Math.min(8,Math.floor(Number(config.maxSeats))));
     const smallBlind=Number(config.smallBlind), bigBlind=Number(config.bigBlind);
-    const variant=config.variant==='5card'?'5card':'holdem';
+    const variant=config.variant==='5card'?'draw':'holdem';
     if(!Number.isFinite(startingStack)||startingStack<=0)return {ok:false,error:t('stackError')};
     if(!Number.isFinite(maxSeats)||maxSeats<2||maxSeats>8)return {ok:false,error:t('minMaxSeats')};
     if(!Number.isFinite(smallBlind)||smallBlind<=0||!Number.isFinite(bigBlind)||bigBlind<smallBlind)return {ok:false,error:t('blindsError')};
     gameState.currency=currency;gameState.startingStack=startingStack;gameState.maxSeats=maxSeats;
     gameState.smallBlind=smallBlind;gameState.bigBlind=bigBlind;gameState.minRaise=bigBlind;gameState.variant=variant;
+    document.getElementById('raiseInput').value=gameState.minRaise;
     gameState.players.forEach(p=>{if(p&&gameState.status==='lobby')p.chips=startingStack;});
     return {ok:true};
 }
 
 function initHostLocally(username){
     gameState.isHost=true;gameState.myPlayerName=username;gameState.myPlayerId=generateId();
-    gameState.hostId=gameState.myPlayerId;gameState.roomId=gameState.myPlayerId;gameState.gameId='poker';gameState.gameName='Poker';
+    gameState.hostId=gameState.myPlayerId;gameState.hostPlayerId=gameState.myPlayerId;gameState.roomId=gameState.myPlayerId;gameState.gameId='poker';gameState.gameName='Poker';
     gameState.kickedPeerIds=[];gameState.kicked=false;gameState.backupHostId=null;gameState.spectators=[];
     loadRoomHistory();
     gameState.players=new Array(8).fill(null);
@@ -399,18 +403,19 @@ function promoteToHost(){
     peerInstance=null;peerConnections={};
     Object.assign(gameState,JSON.parse(JSON.stringify(snapshot)));
     gameState.roomId=roomId;gameState.myPlayerId=preservedId;gameState.myPlayerName=preservedName;
-    gameState.isHost=true;gameState.hostId=roomId;gameState.kicked=false;gameState.backupState=null;
+    gameState.isHost=true;gameState.hostId=roomId;gameState.hostPlayerId=preservedId;gameState.kicked=false;gameState.backupState=null;
     const oldHostSeat=gameState.players.findIndex(p=>p?.id===oldHostId);
     if(oldHostSeat>=0 && oldHostId!==preservedId){
-        if(gameState.status==='lobby')gameState.players[oldHostSeat]=null;
-        else {
-            gameState.players[oldHostSeat].disconnected=true;gameState.players[oldHostSeat].folded=true;gameState.players[oldHostSeat].actedThisRound=true;gameState.players[oldHostSeat].lastAction='Host disconnected';
-            if(gameState.activeTurnSeat===oldHostSeat)advanceAfterAction(gameState);
-        }
+        // The previous host no longer owns a seat after promotion. Any chips
+        // already committed to the pot remain in the pot; removing the seat
+        // prevents the disconnected host from blocking the new host's game.
+        const wasActiveTurn=gameState.activeTurnSeat===oldHostSeat;
+        gameState.players[oldHostSeat]=null;
+        if(wasActiveTurn && gameState.status==='in-progress') advanceAfterAction(gameState);
     }
     const openHost=()=>{
         peerInstance=new Peer(roomId,getPeerOptions());
-        peerInstance.on('open',()=>{hostRecoveryInProgress=false;gameState.hostId=roomId;logMessage('Host promoted after previous host disconnected.','success');broadcastPacket({type:'HOST_ANNOUNCE',roomId,hostId:roomId});broadcastState();renderTableUI();scheduleBot();});
+        peerInstance.on('open',()=>{hostRecoveryInProgress=false;gameState.hostId=roomId;gameState.hostPlayerId=preservedId;logMessage('Host promoted after previous host disconnected.','success');broadcastPacket({type:'HOST_ANNOUNCE',roomId,hostId:roomId});broadcastState();renderTableUI();scheduleBot();});
         peerInstance.on('connection',attachHostConnection);
         peerInstance.on('error',e=>{
             if(e.type==='unavailable-id'){try{peerInstance.destroy();}catch{}setTimeout(openHost,800);return;}
@@ -442,7 +447,7 @@ function kickPlayer(playerId){
 
 function startHand(){
     if(!gameState.isHost)return;
-    const r=initHand(gameState);if(!r.ok){alert(r.error);return;}
+    const r=initHand(gameState);if(!r.ok){showAlert('Game Error', `Game error occurred: ${r.error}`);return;}
     appendChatMessage('System',`Hand #${gameState.handNumber} started. Blinds ${money(gameState,gameState.smallBlind)}/${money(gameState,gameState.bigBlind)}.`,true);
     broadcastState();renderTableUI();scheduleBot();
 }
@@ -451,7 +456,7 @@ function requestAction(action,amount=0,indices=[]){
     if(gameState.isHost){
         const seat=gameState.players.findIndex(p=>p?.id===gameState.myPlayerId);
         const r=action==='draw'?processDraw(gameState,seat,indices):processAction(gameState,seat,action,amount);
-        if(!r.ok){alert(r.error);return;}
+        if(!r.ok){showAlert('Game Error', `Game error occurred: ${r.error}`);return;}
         broadcastState();renderTableUI();scheduleBot();
     }else{
         const host=peerConnections[gameState.hostId||gameState.roomId];

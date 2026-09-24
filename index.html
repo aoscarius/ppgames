@@ -17,7 +17,7 @@
 </head>
 <body class="h-full w-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
 
-    <!-- 1. WELCOME SCREEN (Initial Onboarding State) -->
+    <!-- WELCOME SCREEN (Initial Onboarding State) -->
     <div id="welcomeScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative my-auto">
             
@@ -84,7 +84,7 @@
         </div>
     </div>
 
-    <!-- 2. GAME SELECTION SCREEN -->
+    <!-- GAME SELECTION SCREEN -->
     <div id="gameSelectionScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl my-auto">
             <div class="text-center mb-6">
@@ -126,7 +126,7 @@
         </div>
     </div>
 
-    <!-- 3. POKER TABLE CONFIGURATION -->
+    <!-- POKER TABLE CONFIGURATION -->
     <div id="pokerConfigScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl my-auto">
             <div class="mb-6">
@@ -186,7 +186,7 @@
         </div>
     </div>
 
-    <!-- 4. GAME SCREEN (Main Interactive View) -->
+    <!-- GAME SCREEN (Main Interactive View) -->
     <div id="gameScreen" class="hidden flex-1 flex flex-col h-full w-full overflow-hidden relative">
 
         <!-- Top Navigation Header -->
@@ -198,13 +198,11 @@
                 <div>
                     <h2 class="font-extrabold text-xs sm:text-sm leading-tight flex items-center gap-1.5">
                         <span id="roomStatusText" data-i18n="pokerRoom">Poker Room</span>
-                        <span id="roomStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700" data-i18n="connecting">Connecting</span>
                     </h2>
                     <p id="variantLabel" class="text-[10px] text-slate-400 hidden sm:block">Texas Hold'em</p><p id="tableConfigLabel" class="text-[9px] text-slate-500 hidden sm:block"></p>
                 </div>
+                <span id="roomStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700" data-i18n="connecting">Connecting</span>
             </div>
-
-            <div id="gamePhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-emerald-300 text-center">Lobby Waiting</div>
 
             <!-- Header Right Action Counters & Share -->
             <div class="flex items-center space-x-1.5 sm:space-x-2">
@@ -242,7 +240,7 @@
 
             <!-- Responsive Table Felt Container -->
             <div class="w-full max-w-6xl my-auto relative flex flex-col items-center justify-center">
-                <div class="w-full aspect-[1.35/1] max-h-[66vh] rounded-[90px] sm:rounded-[180px] poker-felt relative flex flex-col items-center justify-center p-3 sm:p-6">
+                <div class="w-full aspect-[0.35/1] max-h-[66vh] rounded-[90px] sm:rounded-[180px] poker-felt relative flex flex-col items-center justify-center p-3 sm:p-6">
                     <div class="absolute inset-3 sm:inset-6 rounded-[75px] sm:rounded-[160px] border border-emerald-400/20 pointer-events-none"></div>
                     <div class="absolute inset-[9%] rounded-[70px] sm:rounded-[140px] border border-white/5 pointer-events-none"></div>
 
@@ -261,9 +259,7 @@
                         <div id="communityCards" class="flex items-center justify-center gap-1 sm:gap-2 min-h-[54px] sm:min-h-[76px] w-full">
                             <span class="text-slate-400 text-[11px] sm:text-xs italic" data-i18n="waitingDealer">Waiting for dealer...</span>
                         </div>
-                        <div id="playerHandSummary" class="text-xs font-bold text-slate-300 px-2 text-ellipse hidden sm:block">
-                            Your Turn
-                        </div>
+
                     </div>
 
                     <div id="seat-0" class="poker-seat"></div>
@@ -277,27 +273,39 @@
                 </div>
             </div>
 
+            <!-- General infos -->
+            <div id="gamePhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-emerald-300 text-center">Lobby Waiting</div>
+            <div id="playerHandSummary" class="text-xs sm:text-sm font-bold text-slate-300 px-2 text-center truncate max-w-full">Waiting for players...</div>
+
             <!-- Bottom Controls Container -->
             <div class="w-full max-w-4xl mt-2 shrink-0 space-y-2">
                 
                 <!-- Player Gameplay Action Buttons -->
                 <div class="bg-slate-900/90 border border-slate-800 p-2 rounded-2xl flex items-center justify-between gap-2 backdrop-blur-md">
-                    <button id="startGameBtn" disabled class="deal-hand-btn px-3.5 sm:px-5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
-                        <i class="fa-solid fa-clover text-amber-200"></i><span data-i18n="dealHand">Deal Hand</span>
+                    <button id="startGameBtn" disabled class="deal-hand-btn items-center px-3.5 sm:px-5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
+                        <i class="fa-solid fa-clover text-amber-200"></i> <span data-i18n="dealHand">Deal Hand</span>
                     </button>
-                    <div id="actionControls" class="flex items-center justify-end gap-1.5 sm:gap-2 w-full">
-                        <button id="foldBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 border border-rose-800/60 text-xs font-extrabold transition" data-i18n="fold">
-                            Fold
-                        </button>
-                        <button id="checkCallBtn" disabled class="px-3.5 sm:px-5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition" data-i18n="check">
-                            Check
-                        </button>
+                    <div id="actionControls" class="flex items-center justify-end gap-1.5 sm:gap-2">
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2">                        
+                            <button id="drawBtn" disabled class="px-3.5 w-full sm:px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-30 disabled:pointer-events-none text-purple-100 text-xs font-extrabold transition" data-i18n="draw">
+                                Draw
+                            </button>
+                            <button id="foldBtn" disabled class="px-3.5 w-full sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 text-xs font-extrabold transition" data-i18n="fold">
+                                Fold
+                            </button>
+                            <button id="checkCallBtn" disabled class="px-3.5 w-full sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition" data-i18n="check">
+                                Check
+                            </button>
+                        </div>
                         <div class="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
                             <input id="raiseInput" type="number" min="20" step="10" value="40" class="w-14 sm:w-16 bg-slate-900 border border-slate-700 rounded-lg px-1 py-0.5 text-xs font-mono text-emerald-400 font-bold outline-none text-center">
                             <button id="raiseBtn" disabled class="px-3 sm:px-4 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="raise">
                                 Raise
                             </button>
                         </div>
+                        <button id="allInBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-fuchsia-700 hover:bg-fuchsia-600 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="allIn">
+                            All-in
+                        </button>
                     </div>
                 </div>
 
@@ -337,6 +345,15 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- UNIFIED Dynamic HTML5 Modal Popup -->
+    <div id="appModal" class="hidden fixed inset-0 bg-slate-950/95 items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 w-full max-w-[440px] shadow-[0_10px_25px_rgba(0,0,0,0.5)] max-h-[90vh] flex flex-col">
+            <h3 id="modalTitle" class="text-[1.1rem] font-semibold mb-3 text-slate-50">Notice</h3>
+            <div id="modalBody" class="modal-body text-[13px] text-slate-300 mb-4 leading-relaxed overflow-y-auto pr-1"></div>
+            <div class="flex gap-2 justify-end" id="modalFooter"></div>
+        </div>
     </div>
 
     <script src="js/localization.js"></script>

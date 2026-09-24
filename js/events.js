@@ -60,7 +60,7 @@ function setupEventListeners(){
     // shortcut above).
     document.getElementById('manualJoinBtn').onclick=()=>{
         const r=document.getElementById('joinRoomInput').value.trim();
-        if(!r)return alert('Enter a Room ID');
+        if(!r)return showAlert('Enter a Room ID', 'Empty/Invalid id entered. Paste only the part after ?room=');
         history.replaceState({},'',`${location.pathname}?room=${encodeURIComponent(r)}`);
         enterGameSelection(false);
     };
@@ -105,7 +105,7 @@ function setupEventListeners(){
 
     document.getElementById('startGameBtn').onclick=()=>{if(gameState.isHost)startHand();};
 
-    document.addEventListener('click', e=>{
+    document.addEventListener('click',e=>{
         const add=e.target.closest('[data-add-bot]');
         if(add&&gameState.isHost&&gameState.status==='lobby'){
             const seat=Number(add.dataset.addBot);
@@ -132,22 +132,24 @@ function setupEventListeners(){
     // the host to apply it (if we're a client). The check/call button
     // figures out which of the two actions actually applies based on
     // whether the local player is currently facing a bet.
+    document.getElementById('drawBtn').onclick=()=>{requestAction('draw',0,[...drawSelection]);drawSelection.clear();};
     document.getElementById('foldBtn').onclick=()=>requestAction('fold');
     document.getElementById('checkCallBtn').onclick=()=>{
         const s=gameState.players.findIndex(p=>p?.id===gameState.myPlayerId);
         requestAction(gameState.currentHighBet>(gameState.players[s]?.currentBet||0)?'call':'check');
     };
     document.getElementById('raiseBtn').onclick=()=>requestAction('raise',Number(document.getElementById('raiseInput').value));
+    document.getElementById('allInBtn').onclick=()=>requestAction('allin');
 
     // Copy the current page URL (which contains the ?room= invite link
     // once hosting has started) to the clipboard so it can be shared;
-    // falls back to showing it in an alert if clipboard access fails.
+    // falls back to showing it in an showAlert if clipboard access fails.
     document.getElementById('shareRoomBtn').onclick=async()=>{
         try{
             await navigator.clipboard.writeText(location.href);
-            alert('Invite link copied!');
+            showAlert('Invite link copied!', location.href);
         } catch {
-            alert(location.href);
+            showAlert('Copy and share link:', location.href);
         }
     };
 
@@ -198,7 +200,7 @@ function setupEventListeners(){
 // discard happens later when the Draw button is clicked (see ui.js).
 document.addEventListener('click',e=>{
     const el=e.target.closest('[class*="draw-card-"]'); if(!el||gameState.stage!=='draw')return;
-    const m=el.className.match(/draw-card-(\d+)/);if(!m)return;const i=Number(m[1]);if(drawSelection.has(i))drawSelection.delete(i);else drawSelection.add(i);el.classList.toggle('ring-4');el.classList.toggle('ring-purple-400');
+    const m=el.className.match(/draw-card-(\d+)/);if(!m)return;const i=Number(m[1]);if(drawSelection.has(i))drawSelection.delete(i);else drawSelection.add(i);el.classList.toggle('ring-6');el.classList.toggle('ring-blue-600');
 });
 
 // App bootstrap: once the DOM is ready, wire up all event listeners,

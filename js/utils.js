@@ -149,8 +149,25 @@ function shuffleDeck(deck){
 //   spades/clubs dark. `extra` lets callers tack on extra CSS classes
 //   (e.g. a highlight ring on cards selected for the draw variant).
 function cardHTML(c,hidden=false,extra=''){
+    // Keep hidden cards visually identical across peers. The winning-card
+    // highlight is deliberately never applied to a hidden card.
     if(!c || hidden) return `<div class="w-8 h-12 sm:w-11 sm:h-16 rounded-lg bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-900 border border-blue-400/50 flex items-center justify-center shadow-md poker-card shrink-0"><span class="text-blue-300 text-xs sm:text-sm font-black">♠</span></div>`;
     const red=c.suit==='♥'||c.suit==='♦';
     return `<div class="w-8 h-12 sm:w-11 sm:h-16 rounded-lg bg-white border border-slate-300 flex flex-col justify-between p-1 shadow-md poker-card font-extrabold shrink-0 ${red?'text-rose-500':'text-slate-950'} ${extra}"><div class="text-[9px] sm:text-[10px] leading-none font-black">${c.rank}<br>${c.suit}</div><div class="text-center text-xs sm:text-sm leading-none font-black">${c.suit}</div></div>`;
+}
+
+// Stable identity used only for local rendering. Card objects are recreated
+// when state snapshots cross the network, so object-reference comparison is
+// not safe; suit + rank uniquely identify every card in a standard deck.
+function cardKey(card){
+    return card?.suit && card?.rank ? `${card.suit}${card.rank}` : '';
+}
+
+// Return true when the supplied card belongs to the evaluator's exact best
+// five-card combination. This intentionally checks the winning subset rather
+// than highlighting every card in the winner's hand.
+function isWinningCard(card,bestCards){
+    const key=cardKey(card);
+    return !!key && Array.isArray(bestCards) && bestCards.some(c=>cardKey(c)===key);
 }
 

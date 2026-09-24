@@ -10,7 +10,7 @@
 // (see handleNetworkData() in network.js) and re-render from it (ui.js).
 const gameState = {
     roomId: null, isHost: false, myPlayerId: null, myPlayerName: 'PokerPlayer',
-    hostId: null, gameId: 'poker', gameName: 'Poker',
+    hostId: null, hostPlayerId: null, gameId: 'poker', gameName: 'Poker',
     status: 'lobby', variant: 'holdem',       // status: 'lobby' | 'in-progress'
     phase: 'LOBBY WAITING', stage: 'lobby',                  // stage: 'lobby' | 'preflop' | 'flop' | 'turn' | 'river' | 'draw' | 'showdown' ...
     pot: 0, currentBet: 0, currentHighBet: 0, minRaise: 20,

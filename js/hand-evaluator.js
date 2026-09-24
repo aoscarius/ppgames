@@ -23,7 +23,7 @@
 //     since card ranks run 2-14) so two hands can be compared with a plain
 //     numeric >, which is how evaluate() below picks a winner.
 function score5(cards){
-    if(!cards || cards.length!==5) return {type:0,typeName:'Invalid',ranks:[],score:0};
+    if(!cards || cards.length!==5) return {type:0,typeName:'Invalid',ranks:[],score:0,bestCards:[]};
     const s=[...cards].sort((a,b)=>b.value-a.value), counts={};
     s.forEach(c=>counts[c.value]=(counts[c.value]||0)+1);
     const groups=Object.entries(counts).map(([v,c])=>({v:+v,c})).sort((a,b)=>b.c-a.c||b.v-a.v);
@@ -46,8 +46,21 @@ function score5(cards){
     // Encode type as the most-significant digit and each tie-breaker rank
     // as a base-15 digit after it, so bigger `score` always means a
     // strictly better hand and hands can be compared with a plain `>`.
-    let score=type; for(const r of ranks) score=score*15+r;
-    return {type,typeName:name,ranks,score};
+    // IMPORTANT: different hand categories carry different numbers of
+    // tie-breaker ranks (a straight only needs 1, one-pair needs 4, a
+    // flush/high-card needs 5, etc). If we don't pad every category to the
+    // same fixed width, `type` ends up multiplied by a different power of
+    // 15 each time -- e.g. flush's 5 rank-digits (15^5) would outweigh
+    // full house's 2 rank-digits (15^2), so a mere Flush would outscore a
+    // Full House or even a Straight Flush. Padding to a constant width
+    // (RANK_SLOTS) guarantees `type` always dominates every possible
+    // combination of tie-breaker ranks, exactly as real poker hand
+    // rankings require.
+    const RANK_SLOTS=5;
+    const padded=ranks.slice(0,RANK_SLOTS);
+    while(padded.length<RANK_SLOTS) padded.push(0);
+    let score=type; for(const r of padded) score=score*15+r;
+    return {type,typeName:name,ranks,score,bestCards:[...s]};
 }
 
 // Generate every k-card combination (order doesn't matter) from `cards`,
@@ -65,7 +78,11 @@ function combinations(cards,k){
 // keeping the highest-scoring one. This is what lets a player's best hand
 // be computed from their hole cards + the shared community cards.
 function evaluate(cards){
-    if(!cards || cards.length<5) return {type:0,typeName:'Incomplete',ranks:[],score:0};
-    let best=null; for(const c of combinations(cards,5)){const x=score5(c);if(!best||x.score>best.score)best=x;} return best;
+    if(!cards || cards.length<5) return {type:0,typeName:'Incomplete',ranks:[],score:0,bestCards:[]};
+    let best=null;
+    for(const c of combinations(cards,5)){
+        const x=score5(c);
+        if(!best||x.score>best.score) best=x;
+    }
+    return best;
 }
-

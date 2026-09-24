@@ -16,15 +16,20 @@ function collectChips(state){
 function resetBetRound(state){
     state.players.forEach(p=>{if(p){p.currentBet=0;p.actedThisRound=false;}});
     state.currentHighBet=0; state.currentBet=0; state.minRaise=state.bigBlind;
+    document.getElementById('raiseInput').value=gameState.minRaise;
 }
 
 // Move chips from a player's stack into the pot. Clamps the amount to
 // never go below 0 or above the player's remaining chips (so a call/raise
 // that exceeds their stack simply puts them all-in for whatever they have
 // left). Returns the actual amount charged.
-function charge(p,amount){
-    const a=Math.max(0,Math.min(amount,p.chips)); p.chips-=a; p.currentBet+=a; gameState.pot+=a;
-    if(p.chips===0) p.allIn=true; return a;
+function charge(state,p,amount){
+    const a=Math.max(0,Math.min(amount,p.chips));
+    p.chips-=a;
+    p.currentBet+=a;
+    state.pot+=a;
+    if(p.chips===0) p.allIn=true;
+    return a;
 }
 
 // Players still contesting the pot this hand: seated, not spectating,
@@ -56,9 +61,11 @@ function awardSingle(state,winner){
 // best hand (hole cards + community cards, via evaluate() in
 // hand-evaluator.js), find the highest score, and split the pot evenly
 // among all players tied for that best score (any odd remainder chip goes
-// to the first winner). Falls back to awardSingle() if only one player is
-// left uncontested. Builds a localized summary message for chat/UI and
-// marks the hand as ended.
+// to the first winner). The evaluator also stores the exact five cards that
+// form the winning hand in `evalResult.bestCards`; the UI uses that data to
+// highlight the winning combination for every peer. Falls back to
+// awardSingle() if only one player is left uncontested. Builds a localized
+// summary message for chat/UI and marks the hand as ended.
 function resolveShowdown(state){
     const live=liveUnfolded(state);
     if(live.length===1){awardSingle(state,live[0]);return;}
@@ -138,16 +145,34 @@ function processAction(state,seat,type,raiseTo=0){
     if(state.status!=='in-progress'||state.activeTurnSeat!==seat) return {ok:false,error:'NOT_YOUR_TURN'};
     const p=state.players[seat]; if(!eligibleToAct(p)) return {ok:false,error:'CANNOT_ACT'};
     const toCall=Math.max(0,state.currentHighBet-p.currentBet);
-    if(type==='fold'){p.folded=true;p.lastAction='Fold';}
+    if(type==='fold'){
+        // Fold is a 5-card-draw-only action in this project. Texas Hold'em
+        // intentionally uses the other three controls only.
+        if(state.variant==='draw') return {ok:false,error:'FOLD_NOT_AVAILABLE'};
+        p.folded=true;p.lastAction='Fold';
+    }
     else if(type==='check'){if(toCall!==0)return {ok:false,error:'CHECK_FACING_BET'};p.lastAction='Check';}
-    else if(type==='call'){charge(p,toCall);p.lastAction=p.allIn?'All-in':'Call';}
+    else if(type==='call'){charge(state,p,toCall);p.lastAction=p.allIn?'All-in':'Call';}
+    else if(type==='allin'){
+        if(p.chips<=0)return {ok:false,error:'ALREADY_ALL_IN'};
+        const previousHigh=state.currentHighBet;
+        const target=p.currentBet+p.chips;
+        charge(state,p,p.chips);
+        if(target>state.currentHighBet){
+            state.minRaise=Math.max(state.minRaise,target-previousHigh);
+            document.getElementById('raiseInput').value=gameState.minRaise;
+            state.currentHighBet=target;
+        }
+        p.lastAction='All-in';
+    }
     else if(type==='raise'){
         let target=Math.floor(Number(raiseTo));
         const minTarget=state.currentHighBet+state.minRaise;
         if(!Number.isFinite(target)||target<minTarget) return {ok:false,error:`MIN_RAISE:${minTarget}`};
         if(target>p.currentBet+p.chips) target=p.currentBet+p.chips;
         if(target<=state.currentHighBet) return {ok:false,error:'RAISE_TOO_SMALL'};
-        charge(p,target-p.currentBet); state.minRaise=target-state.currentHighBet; state.currentHighBet=target;p.lastAction=`Raise to $${target}`;
+        charge(state,p,target-p.currentBet); state.minRaise=target-state.currentHighBet; state.currentHighBet=target;p.lastAction=`Raise to $${target}`;
+        document.getElementById('raiseInput').value=gameState.minRaise;
     } else return {ok:false,error:'UNKNOWN_ACTION'};
     p.actedThisRound=true;
     state.currentBet=state.currentHighBet;
@@ -214,6 +239,7 @@ function initHand(state){
     charge(state.players[bb],state.bigBlind);
     state.currentHighBet=Math.max(state.players[sb].currentBet,state.players[bb].currentBet);
     state.currentBet=state.currentHighBet; state.minRaise=state.bigBlind;
+    document.getElementById('raiseInput').value = state.minRaise;
     state.stage=state.variant==='holdem'?'preflop':'betting1';
     state.phase=state.variant==='holdem'?'PREFLOP':'BETTING 1';
     state.activeTurnSeat=nextSeat(state,bb);

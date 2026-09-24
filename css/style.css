@@ -59,13 +59,11 @@ body {
     height: auto !important;
     flex: 0 0 auto;
     border-radius: clamp(6px, .8vw, 10px);
-    box-shadow: 0 5px 12px rgba(0,0,0,.30), 0 12px 28px rgba(0,0,0,.18);
     transform: translateZ(0);
     transition: transform .18s ease, box-shadow .18s ease;
 }
 .poker-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 16px rgba(0,0,0,.34), 0 16px 32px rgba(0,0,0,.20);
 }
 #holeCards .card, #communityCards .card, .card.poker-card {
     aspect-ratio: 5 / 7;
@@ -90,9 +88,9 @@ body {
     .poker-seat, .poker-card { transition: none; }
     .poker-seat.active-player { animation: none; }
 }
-@media (max-width: 640px) {
+/* @media (max-width: 640px) {
     .poker-card { width: clamp(50px, 15vw, 72px); }
-}
+} */
 
 /* --- Table v4 --- */
 .center-board {
@@ -112,7 +110,6 @@ body {
 .board-stat-muted { background:rgba(15,23,42,.78); border-color:rgba(148,163,184,.18); }
 .board-stat-muted span { color:#94a3b8; }
 .board-stat-muted strong { color:#e2e8f0; }
-.deal-hand-btn { min-width:145px; }
 
 .poker-seat { width:clamp(92px, 11vw, 132px); }
 .seat-player { position:relative; width:100%; }
@@ -134,7 +131,7 @@ body {
 .seat-name { width:100%; margin-top:3px; font-size:10px; font-weight:800; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#f8fafc; }
 .seat-stack { font:800 10px 'JetBrains Mono',monospace; color:#34d399; margin-top:1px; }
 .seat-cards { display:flex; justify-content:center; gap:2px; margin-top:5px; max-width:100%; z-index:3; }
-.seat-cards .poker-card { width:clamp(30px, 3.3vw, 43px); border-radius:5px; box-shadow:0 4px 9px rgba(0,0,0,.42); }
+.seat-cards .poker-card { /*width:clamp(30px, 3.3vw, 43px);*/ border-radius:5px; }
 .seat-cards .poker-card:hover { transform:translateY(-2px); }
 .seat-status { font-size:7px; font-weight:900; text-transform:uppercase; margin-top:2px; }
 .seat-folded { color:#fb7185; }
@@ -180,4 +177,37 @@ body {
     .board-stat strong { font-size:12px; }
 }
 
-#playerHandSummary { white-space: nowrap; }
+/* --- Showdown winning-combination highlight --- */
+.winner-card {
+    position: relative;
+    z-index: 6;
+    border-color: rgba(250, 204, 21, .95) !important;
+    box-shadow:
+        0 0 0 2px rgba(250, 204, 21, .55),
+        0 0 14px rgba(250, 204, 21, .70),
+        0 7px 18px rgba(0, 0, 0, .38) !important;
+    animation: winnerCardPulse 1.35s ease-in-out infinite;
+}
+.winner-card::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid rgba(255, 255, 255, .62);
+    border-radius: inherit;
+    pointer-events: none;
+}
+@keyframes winnerCardPulse {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-3px) scale(1.045); }
+}
+.seat-hand {
+    transition: color .2s ease, text-shadow .2s ease;
+}
+.seat-turn .winner-card { animation-duration: 1.1s; }
+@media (prefers-reduced-motion: reduce) {
+    .winner-card { animation: none; }
+}
+
+/* Gameplay controls are visible only during an active hand. */
+#actionControls.hidden { display:none !important; }
+#startGameBtn.hidden { display:none !important; }
