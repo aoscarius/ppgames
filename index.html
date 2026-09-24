@@ -159,6 +159,13 @@
                         </select>
                     </div>
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5" data-i18n="variant">Poker variant</label>
+                    <select id="variantConfigSelect" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500">
+                        <option value="holdem">Texas Hold'em</option>
+                        <option value="5card">5-Card Draw</option>
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1.5" data-i18n="smallBlindLabel">Small blind</label>
@@ -232,41 +239,33 @@
         <main class="flex-1 relative flex flex-col items-center justify-between p-2 sm:p-4 overflow-y-auto min-h-0">
 
             <!-- Responsive Table Felt Container -->
-            <div class="w-full max-w-5xl my-auto relative flex flex-col items-center justify-center">
-                
-                <!-- Felt Layout (Aspect Ratio Preserved) -->
-                <div class="w-full aspect-[1.5/1] sm:aspect-[1.9/1] max-h-[60vh] rounded-[100px] sm:rounded-[180px] poker-felt relative flex flex-col items-center justify-center p-3 sm:p-6 border-slate-900">
-                    
-                    <!-- Inner Felt Ring Lines -->
-                    <div class="absolute inset-3 sm:inset-6 rounded-[85px] sm:rounded-[160px] border border-emerald-500/20 pointer-events-none"></div>
+            <div class="w-full max-w-6xl my-auto relative flex flex-col items-center justify-center">
+                <div class="w-full aspect-[1.35/1] sm:aspect-[1.85/1] max-h-[66vh] rounded-[90px] sm:rounded-[180px] poker-felt relative flex flex-col items-center justify-center p-3 sm:p-6">
+                    <div class="absolute inset-3 sm:inset-6 rounded-[75px] sm:rounded-[160px] border border-emerald-400/20 pointer-events-none"></div>
+                    <div class="absolute inset-[9%] rounded-[70px] sm:rounded-[140px] border border-white/5 pointer-events-none"></div>
 
-                    <!-- Center Board Container (Pot & Cards) -->
-                    <div class="z-10 flex flex-col items-center justify-center gap-1.5 sm:gap-2 bg-slate-950/70 p-2.5 sm:p-4 rounded-2xl border border-emerald-500/30 backdrop-blur-sm max-w-[92%] shadow-2xl">
-                        
-                        <!-- Pot Info -->
+                    <!-- Redesigned center board -->
+                    <div id="centerBoard" class="center-board z-20 flex flex-col items-center justify-center gap-2 sm:gap-3 px-3 py-3 sm:px-5 sm:py-4 rounded-3xl border border-emerald-400/30 backdrop-blur-xl shadow-2xl">
                         <div class="flex items-center gap-2 sm:gap-3">
-                            <div class="bg-emerald-950/90 border border-emerald-500/40 px-3 py-0.5 sm:py-1 rounded-full text-center shadow">
-                                <span class="text-[9px] uppercase tracking-wider text-emerald-400 block font-bold" data-i18n="pot">Pot</span>
-                                <span id="potDisplay" class="text-xs sm:text-base font-extrabold text-amber-400 font-mono">$0</span>
+                            <div class="board-stat">
+                                <span data-i18n="pot">Pot</span>
+                                <strong id="potDisplay">$0</strong>
                             </div>
-                            <div class="bg-slate-900/90 border border-slate-700/60 px-3 py-0.5 sm:py-1 rounded-full text-center shadow">
-                                <span class="text-[9px] uppercase tracking-wider text-slate-400 block font-bold" data-i18n="currentBet">Current Bet</span>
-                                <span id="currentBetDisplay" class="text-xs sm:text-base font-extrabold text-slate-200 font-mono">$0</span>
+                            <div class="board-stat board-stat-muted">
+                                <span data-i18n="currentBet">Current Bet</span>
+                                <strong id="currentBetDisplay">$0</strong>
                             </div>
                         </div>
-
-                        <!-- Community Cards -->
-                        <div id="communityCards" class="flex items-center gap-1 sm:gap-2 my-0.5 min-h-[50px] sm:min-h-[70px]">
+                        <div id="communityCards" class="flex items-center justify-center gap-1 sm:gap-2 min-h-[54px] sm:min-h-[76px] w-full">
                             <span class="text-slate-400 text-[11px] sm:text-xs italic" data-i18n="waitingDealer">Waiting for dealer...</span>
                         </div>
-
-                        <!-- Phase Indicator -->
-                        <div id="gamePhaseText" class="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-400/90 text-center">
-                            Lobby Waiting
-                        </div>
+                        <div id="gamePhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-emerald-300 text-center">Lobby Waiting</div>
+                        <button id="startGameBtn" disabled class="deal-hand-btn px-5 sm:px-7 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-xs sm:text-sm font-black shadow-lg disabled:opacity-35 disabled:pointer-events-none transition flex items-center gap-2">
+                            <i class="fa-solid fa-clover text-amber-200"></i><span data-i18n="dealHand">Deal Hand</span>
+                        </button>
+                        <span id="dealHint" class="text-[9px] text-slate-500" data-i18n="dealHint">Only the host can deal</span>
                     </div>
 
-                    <!-- 8 Seat Elements positioned absolute on table boundary -->
                     <div id="seat-0" class="poker-seat"></div>
                     <div id="seat-1" class="poker-seat"></div>
                     <div id="seat-2" class="poker-seat"></div>
@@ -275,42 +274,12 @@
                     <div id="seat-5" class="poker-seat"></div>
                     <div id="seat-6" class="poker-seat"></div>
                     <div id="seat-7" class="poker-seat"></div>
-
                 </div>
             </div>
 
             <!-- Bottom Controls Container -->
             <div class="w-full max-w-4xl mt-2 shrink-0 space-y-2">
                 
-                <!-- Host-Only Responsive Mobile-First Control Panel -->
-                <div id="hostAdminPanel" class="hidden bg-slate-900/95 border border-amber-500/40 p-2.5 sm:p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-2xl backdrop-blur-md">
-                    <div class="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-                        <span class="text-[10px] font-extrabold text-amber-400 bg-amber-950/90 border border-amber-700/60 px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 flex items-center gap-1">
-                            <i class="fa-solid fa-crown text-amber-300"></i> <span data-i18n="hostPanel">Host Panel</span>
-                        </span>
-                        
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] font-bold text-slate-400 shrink-0" data-i18n="variant">Variant:</label>
-                            <select id="variantSelect" class="bg-slate-800 text-slate-200 border border-slate-700 text-xs rounded-xl px-2.5 py-1 outline-none font-semibold focus:border-amber-500 transition">
-                                <option value="holdem">Texas Hold'em</option>
-                                <option value="5card">5-Card Draw</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-2 w-full sm:w-auto shrink-0">
-                        <button id="addBotBtn" class="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-robot"></i> <span>+ Bot</span>
-                        </button>
-                        <button id="removeBotBtn" class="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-trash-can text-rose-400"></i> <span>- Bot</span>
-                        </button>
-                        <button id="startGameBtn" class="flex-1 sm:flex-none px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-black shadow-lg shadow-emerald-950/60 transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-play text-amber-300"></i> <span data-i18n="dealHand">Deal Hand</span>
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Player Gameplay Action Buttons -->
                 <div class="bg-slate-900/90 border border-slate-800 p-2 rounded-2xl flex items-center justify-between gap-2 backdrop-blur-md">
                     <div id="playerHandSummary" class="text-xs font-bold text-slate-300 px-2 truncate hidden sm:block">
@@ -377,6 +346,7 @@
     <script src="js/utils.js"></script>
     <script src="js/hand-evaluator.js"></script>
     <script src="js/game-logic.js"></script>
+    <script src="js/network-config.js"></script>
     <script src="js/network.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/events.js"></script>

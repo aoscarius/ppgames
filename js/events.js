@@ -2,6 +2,25 @@
    EVENT LISTENERS - DOM event wiring and app bootstrap
    ======================================================================== */
 
+// Infinite procedural name generator.
+// Generates natural-sounding generic names without category constraints.
+function* proceduralNameGenerator() {
+    const prefixes = ["Aethel", "Brim", "Cael", "Dread", "Elder", "Frost", "Gloom", "Grim", "Iron", "Kael", "Mith", "Nova", "Odin", "Shadow", "Storm", "Thorn", "Val", "Vance", "Void", "Zephyr"];
+    const cores = ["arc", "ax", "bar", "cor", "dan", "dor", "fen", "fin", "gar", "hor", "karn", "lum", "mor", "pel", "ra", "rin", "stone", "thor", "tor", "vane"];
+    const suffixes = ["born", "breaker", "crest", "fall", "fang", "fist", "forge", "glen", "heart", "hold", "keeper", "loom", "mantle", "more", "path", "ridge", "shaper", "spire", "vale", "weaver"];
+
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    while (true) {
+        // Randomly choose between a 2-part name (Prefix+Suffix) or a 3-part name (Prefix+Core+Suffix)
+        const name = Math.random() > 0.4 
+            ? pick(prefixes) + pick(suffixes) 
+            : pick(prefixes) + pick(cores) + pick(suffixes);
+
+        yield name;
+    }
+}
+
 // Wire up every static DOM control on the page to its handler. Called
 // once on startup (see the DOMContentLoaded listener at the bottom).
 function setupEventListeners(){
@@ -22,14 +41,20 @@ function setupEventListeners(){
         showScreen('gameSelectionScreen');
     };
 
+    const createBtn=document.getElementById('createTableBtn');
+    const manualJoinContainer=document.getElementById('manualJoinContainer');
     if(room){
+        // A shared room link is a join context, never a host/create context.
+        // The old code replaced createTableBtn and then immediately tried to
+        // access it again, throwing a TypeError and aborting all later listeners.
         document.getElementById('contextActionContainer').innerHTML=`<button id="joinTableBtn" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow transition flex items-center justify-center gap-2"><i class="fa-solid fa-right-to-bracket"></i><span>${t('joinBtn')} Table (${room})</span></button>`;
         document.getElementById('joinTableBtn').onclick=()=>enterGameSelection(false);
-    } else {
+        if(manualJoinContainer)manualJoinContainer.classList.add('hidden');
+    }else if(createBtn){
         // "Create New Table (Host)": become the host (initHostLocally) and go
         // live on the P2P network (initPeerNetwork), then swap from the
         // welcome screen to the game screen.
-        document.getElementById('createTableBtn').onclick=()=>enterGameSelection(true);
+        createBtn.onclick=()=>enterGameSelection(true);
     }
     // "Join" with a manually-typed room ID (as opposed to the invite-link
     // shortcut above).
@@ -61,6 +86,7 @@ function setupEventListeners(){
             if(!r)return showScreen('welcomeScreen');
             joinRoomPeer(r,input.value.trim()||'PokerPlayer');
             showScreen('gameScreen');
+            renderTableUI();
         }
     };
 
@@ -77,36 +103,29 @@ function setupEventListeners(){
         renderTableUI();
     };
 
-    document.getElementById('startGameBtn').onclick=startHand;
-    document.getElementById('variantSelect').onchange=e=>{
-        if(gameState.isHost&&gameState.status==='lobby'){
-            gameState.variant=e.target.value;broadcastState();renderTableUI();
+    document.getElementById('startGameBtn').onclick=()=>{if(gameState.isHost)startHand();};
+
+    document.addEventListener('click', e=>{
+        const add=e.target.closest('[data-add-bot]');
+        if(add&&gameState.isHost&&gameState.status==='lobby'){
+            const seat=Number(add.dataset.addBot);
+            if(!Number.isInteger(seat)||seat<0||seat>=gameState.maxSeats||gameState.players[seat])return;
+            gameState.players[seat]={id:'bot-'+generateId(),name:proceduralNameGenerator().next().value + 'Bot',chips:gameState.startingStack,currentBet:0,folded:false,isBot:true,cards:[]};
+            broadcastState();renderTableUI();
+            return;
         }
-    };
-    document.getElementById('addBotBtn').onclick=()=>{
-        if (!gameState.isHost||gameState.status!=='lobby') return;
-        const i=gameState.players.findIndex((p,idx)=>!p&&idx<gameState.maxSeats);
-        if (i<0) return alert('Table is full');
-        const names = [
-            'BluffBot', 'HoldemAI', 'Stacker', 'AceBot', 'ChipMaster',
-            'DeepStack', 'NeuralFold', 'AlgoReraise', 'QuantumRiver', 'ByteBluff', 'CyberDealer', 'NashBot',
-            'NutFlush', 'FullHouseAI', 'PocketAces', 'RoyalBot', 'KickerAI', 'DeadMansHand',
-            'SharkMind', 'CheckRaise', 'ShowdownBot', 'VPIP_Master', 'SlowPlay', 'TiltProof', 'GTO_Matrix',
-            'HighRoller', 'StackOverflow', 'AllInAndroid', 'BigBlind', 'FeltStripper', 'MuckMachine'
-        ];
-        gameState.players[i]={id:'bot-'+generateId(),name:names[Math.floor(Math.random()*names.length)],chips:gameState.startingStack,currentBet:0,folded:false,isBot:true,cards:[]};
-        broadcastState();
-        renderTableUI();
-    };
-    document.getElementById('removeBotBtn').onclick=()=>{
-        if(!gameState.isHost||gameState.status!=='lobby')return;
-        const i=gameState.players.findLastIndex(p=>p?.isBot&&gameState.players.indexOf(p)<gameState.maxSeats);
-        if(i>=0){
-            gameState.players[i]=null;
-            broadcastState();
-            renderTableUI();
+        const remove=e.target.closest('[data-remove-bot]');
+        if(remove&&gameState.isHost&&gameState.status==='lobby'){
+            const seat=Number(remove.dataset.removeBot);
+            if(gameState.players[seat]?.isBot){gameState.players[seat]=null;broadcastState();renderTableUI();}
+            return;
         }
-    };
+        const kick=e.target.closest('[data-kick-player]');
+        if(kick&&gameState.isHost&&!kick.disabled){
+            const id=kick.dataset.kickPlayer;
+            if(id&&id!==gameState.myPlayerId&&confirm(t('confirmKick'))){kickPlayer(id);}
+        }
+    });
 
     // Player action buttons: each simply calls requestAction() (network.js),
     // which either applies the action locally (if we're the host) or asks
@@ -157,12 +176,13 @@ function setupEventListeners(){
     document.getElementById('chatForm').onsubmit=e=>{
         e.preventDefault();
         const x=document.getElementById('chatInput'),tt=x.value.trim();if(!tt)return;
-        const packet={type:'CHAT',roomId:gameState.roomId,sender:gameState.myPlayerName,text:tt};
+        const packet={type:'CHAT',roomId:gameState.roomId,senderId:gameState.myPlayerId,sender:gameState.myPlayerName,text:tt};
         appendChatMessage(gameState.myPlayerName,tt);
         if(gameState.isHost)broadcastPacket(packet);
         else{
-            const host=Object.values(peerConnections)[0];
-            if(host?.open)host.send(packet);
+            const host=peerConnections[gameState.hostId||gameState.roomId];
+            if(host?.open)sendTo(host,packet);
+            else scheduleHostRecovery();
         }
         x.value='';
     };

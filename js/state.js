@@ -18,7 +18,8 @@ const gameState = {
     smallBlind: 10, bigBlind: 20, dealerSeat: -1, activeTurnSeat: -1,
     communityCards: [], deck: [], players: new Array(8).fill(null), // max 8 physical seats; table may use fewer
     spectators: [], unreadChat: 0, unreadLogs: 0, handNumber: 0,
-    chatHistory: [], logHistory: [], showdownSummary: ''
+    chatHistory: [], logHistory: [], showdownSummary: '',
+    kickedPeerIds: [], kicked: false, backupHostId: null, backupState: null, network: null
 };
 
 // --- P2P / networking runtime state (not part of gameState because it's
@@ -26,7 +27,11 @@ const gameState = {
 let peerInstance = null;      // this browser's PeerJS Peer object (see network.js)
 let peerConnections = {};     // host only: map of peerId -> open DataConnection to each client
 let drawSelection = new Set();// indices of the local player's own hole cards selected to discard (5-card draw variant)
-let botTimer = null;          // setTimeout handle used to pace/delay bot turns so they don't act instantly
+let botTimer = null;
+let hostRecoveryTimer = null;
+let hostRecoveryInProgress = false;
+let roomJoinConfirmed = false;
+let joinHandshakeTimer = null;          // setTimeout handle used to pace/delay bot turns so they don't act instantly
 
 // --- Card/deck constants shared by deck creation, rendering and hand evaluation ---
 const SUITS = ['♠','♥','♦','♣'];

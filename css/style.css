@@ -93,3 +93,89 @@
 @media (max-width: 640px) {
     .poker-card { width: clamp(50px, 15vw, 72px); }
 }
+
+/* --- Table v4 --- */
+.center-board {
+    min-width: min(290px, 62%);
+    background: linear-gradient(180deg, rgba(7,18,16,.92), rgba(3,10,10,.84));
+}
+.board-stat {
+    min-width: 86px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(4,58,38,.78);
+    border: 1px solid rgba(52,211,153,.32);
+    text-align: center;
+}
+.board-stat span { display:block; font-size:9px; text-transform:uppercase; letter-spacing:.12em; color:#6ee7b7; font-weight:800; }
+.board-stat strong { display:block; margin-top:1px; font:800 14px 'JetBrains Mono',monospace; color:#fbbf24; }
+.board-stat-muted { background:rgba(15,23,42,.78); border-color:rgba(148,163,184,.18); }
+.board-stat-muted span { color:#94a3b8; }
+.board-stat-muted strong { color:#e2e8f0; }
+.deal-hand-btn { min-width:145px; }
+
+.poker-seat { width:clamp(92px, 11vw, 132px); }
+.seat-player { position:relative; width:100%; }
+.seat-card {
+    position:relative;
+    width:100%;
+    min-height:112px;
+    padding:7px 5px 6px;
+    border-radius:18px;
+    background:linear-gradient(180deg, rgba(15,23,42,.98), rgba(2,8,18,.96));
+    border:1px solid rgba(71,85,105,.9);
+    box-shadow:0 14px 28px rgba(0,0,0,.34);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+.seat-turn .seat-card { border-color:rgba(52,211,153,.8); box-shadow:0 0 0 2px rgba(52,211,153,.18),0 16px 34px rgba(0,0,0,.42); }
+.seat-avatar { width:38px; height:38px; border-radius:999px; object-fit:cover; background:#0f172a; border:1px solid #475569; }
+.seat-name { width:100%; margin-top:3px; font-size:10px; font-weight:800; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#f8fafc; }
+.seat-stack { font:800 10px 'JetBrains Mono',monospace; color:#34d399; margin-top:1px; }
+.seat-cards { display:flex; justify-content:center; gap:2px; margin-top:5px; max-width:100%; z-index:3; }
+.seat-cards .poker-card { width:clamp(30px, 3.3vw, 43px); border-radius:5px; box-shadow:0 4px 9px rgba(0,0,0,.42); }
+.seat-cards .poker-card:hover { transform:translateY(-2px); }
+.seat-status { font-size:7px; font-weight:900; text-transform:uppercase; margin-top:2px; }
+.seat-folded { color:#fb7185; }
+.seat-allin { color:#fbbf24; }
+.seat-hand { font-size:7px; color:#93c5fd; font-weight:800; margin-top:2px; text-align:center; }
+.host-badge {
+    position:absolute; right:3px; top:3px; z-index:8;
+    width:18px; height:18px; border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    background:#fbbf24; color:#111827; font-size:8px;
+    box-shadow:0 2px 7px rgba(0,0,0,.35);
+}
+.seat-kick {
+    position:absolute; left:3px; top:3px; z-index:9;
+    width:18px; height:18px; border-radius:999px;
+    background:rgba(127,29,29,.92); color:#fecaca; border:1px solid rgba(248,113,113,.4);
+    font-size:8px; display:flex; align-items:center; justify-content:center;
+}
+.seat-kick:hover { background:#dc2626; color:#fff; }
+.seat-bot-remove { background:rgba(30,41,59,.95); color:#cbd5e1; border-color:rgba(148,163,184,.3); }
+.empty-seat {
+    position:relative; width:100%; min-height:74px; border-radius:18px;
+    border:1px dashed rgba(100,116,139,.55); background:rgba(2,8,18,.34);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#64748b; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+}
+.seat-empty-actions { margin-top:6px; }
+.seat-mini-btn {
+    width:25px; height:25px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+    background:#4f46e5; color:#fff; border:1px solid rgba(129,140,248,.7); font-size:10px;
+}
+.seat-mini-btn:hover { background:#6366f1; }
+
+@media (max-width: 640px) {
+    .poker-seat { width:88px; }
+    .seat-card { min-height:102px; border-radius:15px; }
+    .seat-avatar { width:31px; height:31px; }
+    .seat-name { font-size:9px; }
+    .seat-stack { font-size:9px; }
+    .seat-cards .poker-card { width:26px; }
+    .center-board { min-width:220px; }
+    .board-stat { min-width:72px; padding:4px 7px; }
+    .board-stat strong { font-size:12px; }
+}

@@ -85,6 +85,7 @@ const TRANSLATIONS = {
         folded: "Folded",
         allIn: "All-in",
         seat: "Seat {num}",
+        addBot: "Add bot", removeBot: "Remove bot", kickPlayer: "Kick player", playerKicked: "was removed from the table", kickedFromTable: "You were removed from the table.", confirmKick: "Remove this player from the table?", hostOnly: "Only the host can deal", hostReady: "Host controls the deal", dealHint: "Only the host can deal",
         handTypes: {
             HIGH_CARD: 'High Card', ONE_PAIR: 'One Pair', TWO_PAIR: 'Two Pair',
             THREE_OF_A_KIND: 'Three of a Kind', STRAIGHT: 'Straight', FLUSH: 'Flush',
@@ -166,6 +167,7 @@ const TRANSLATIONS = {
         folded: "Ritirato",
         allIn: "All-in",
         seat: "Posto {num}",
+        addBot: "Aggiungi bot", removeBot: "Rimuovi bot", kickPlayer: "Espelli giocatore", playerKicked: "è stato rimosso dal tavolo", kickedFromTable: "Sei stato rimosso dal tavolo.", confirmKick: "Rimuovere questo giocatore dal tavolo?", hostOnly: "Solo l'host può distribuire", hostReady: "L'host controlla la distribuzione", dealHint: "Solo l'host può distribuire",
         handTypes: {
             HIGH_CARD: 'Carta Alta', ONE_PAIR: 'Coppia', TWO_PAIR: 'Doppia Coppia',
             THREE_OF_A_KIND: 'Tris', STRAIGHT: 'Scala', FLUSH: 'Colore',
