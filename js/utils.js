@@ -4,7 +4,7 @@
 
 // Short random identifier used for room IDs, bot player IDs, etc.
 // Not cryptographically secure -- just needs to be unique enough locally.
-function generateId() { return 'poker-' + Math.random().toString(36).slice(2,9); }
+function generateId() { return 'ppgames-' + Math.random().toString(36).slice(2,9); }
 
 function currencySymbol(state=gameState){
     return state.currency === 'EUR' ? '€' : '$';

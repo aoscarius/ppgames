@@ -1,4 +1,4 @@
-# P2P Poker Engine
+# P2P Games Engine
 
 ## What changed
 - Fixed shared-room URL bootstrap: when `?room=` is present, the Create Table control is not wired; the Join Table control is used instead. This prevents the previous null-element exception that stopped the remaining event listeners from being registered.

@@ -105,6 +105,18 @@ function setupEventListeners(){
 
     document.getElementById('startGameBtn').onclick=()=>{if(gameState.isHost)startHand();};
 
+    document.getElementById('resetTableBtn').onclick=()=>{
+        if (!gameState.isHost) return;
+        showModal(
+            t('resetTable'), 
+            t('confirmResetTable'), 
+            [
+                { text: 'OK', bg: 'bg-blue-600 hover:bg-blue-500', onClick: async()=>{resetTable();} },
+                { text: 'Cancel', bg: 'bg-purple-600 hover:bg-purple-500', close:true }
+            ]
+        );
+    };
+
     document.addEventListener('click',e=>{
         const add=e.target.closest('[data-add-bot]');
         if(add&&gameState.isHost&&gameState.status==='lobby'){
@@ -115,15 +127,24 @@ function setupEventListeners(){
             return;
         }
         const remove=e.target.closest('[data-remove-bot]');
-        if(remove&&gameState.isHost&&gameState.status==='lobby'){
+        if(remove&&gameState.isHost){
             const seat=Number(remove.dataset.removeBot);
-            if(gameState.players[seat]?.isBot){gameState.players[seat]=null;broadcastState();renderTableUI();}
+            if(Number.isInteger(seat))removeBotFromTable(seat);
             return;
         }
         const kick=e.target.closest('[data-kick-player]');
         if(kick&&gameState.isHost&&!kick.disabled){
             const id=kick.dataset.kickPlayer;
-            if(id&&id!==gameState.myPlayerId&&confirm(t('confirmKick'))){kickPlayer(id);}
+            if(id&&id!==gameState.myPlayerId) {
+                showModal(
+                    t('kickPlayer'), 
+                    t('confirmKick'),
+                    [
+                        { text: 'OK', bg: 'bg-blue-600 hover:bg-blue-500', onClick: async()=>{kickPlayer(id);} },
+                        { text: 'Cancel', bg: 'bg-purple-600 hover:bg-purple-500', close:true }
+                    ]
+                );
+            }
         }
     });
 
@@ -200,7 +221,7 @@ function setupEventListeners(){
 // discard happens later when the Draw button is clicked (see ui.js).
 document.addEventListener('click',e=>{
     const el=e.target.closest('[class*="draw-card-"]'); if(!el||gameState.stage!=='draw')return;
-    const m=el.className.match(/draw-card-(\d+)/);if(!m)return;const i=Number(m[1]);if(drawSelection.has(i))drawSelection.delete(i);else drawSelection.add(i);el.classList.toggle('ring-6');el.classList.toggle('ring-blue-600');
+    const m=el.className.match(/draw-card-(\d+)/);if(!m)return;const i=Number(m[1]);if(drawSelection.has(i))drawSelection.delete(i);else drawSelection.add(i);el.classList.toggle('ring-4');el.classList.toggle('ring-blue-600');
 });
 
 // App bootstrap: once the DOM is ready, wire up all event listeners,

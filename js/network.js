@@ -432,6 +432,107 @@ function ensureHostConnection(){
     if(!hostConn?.open)connectToHost(gameState.hostId||gameState.roomId);
 }
 
+function resetTable(){
+    if (!gameState.isHost) return;
+
+    clearTimeout(botTimer);
+    drawSelection.clear();
+
+    // Reset the game itself while preserving connected seated players and bots.
+    // Disconnected human seats are released so a new player can join immediately.
+    gameState.players=gameState.players.map(p=>{
+        if (!p) return null;
+        if (!p.isBot && p.disconnected) return null;
+        return {
+            ...p,
+            chips:gameState.startingStack,
+            currentBet:0,
+            folded:false,
+            allIn:false,
+            out:false,
+            disconnected:false,
+            spectator:false,
+            cards:[],
+            evalResult:null,
+            drawDone:false,
+            actedThisRound:false,
+            lastAction:''
+        };
+    });
+
+    gameState.status='lobby';
+    gameState.phase='LOBBY WAITING';
+    gameState.stage='lobby';
+    gameState.pot=0;
+    gameState.currentBet=0;
+    gameState.currentHighBet=0;
+    gameState.minRaise=gameState.bigBlind;
+    gameState.dealerSeat=-1;
+    gameState.activeTurnSeat=-1;
+    gameState.communityCards=[];
+    gameState.deck=[];
+    gameState.showdownSummary='';
+    gameState.spectators=[];
+    gameState.kickedPeerIds=[];
+
+    const raiseInput=document.getElementById('raiseInput');
+    if (raiseInput) raiseInput.value=gameState.minRaise;
+
+    appendChatMessage('System',t('tableReset'),true);
+    broadcastState();
+    renderTableUI();
+    syncBackupHost();
+}
+
+function removeBotFromTable(seat){
+    if(!gameState.isHost)return;
+    if(!Number.isInteger(seat)||seat<0||seat>=gameState.maxSeats)return;
+
+    const bot=gameState.players[seat];
+    if(!bot?.isBot)return;
+
+    clearTimeout(botTimer);
+
+    const wasActive=gameState.status==='in-progress' && gameState.activeTurnSeat===seat;
+
+    // A bot that leaves during a hand is treated like a folded/disconnected
+    // player. Any chips it already put into the pot stay there.
+    if(gameState.status==='in-progress'){
+        bot.folded=true;
+        bot.out=true;
+        bot.actedThisRound=true;
+        bot.drawDone=true;
+        bot.lastAction='Removed by host';
+
+        if(wasActive){
+            if(gameState.stage==='draw'){
+                const remaining=gameState.players.filter((p,i)=>
+                    i!==seat && p && !p.folded && !p.out && !p.drawDone && !p.allIn
+                );
+                if(remaining.length===0){
+                    gameState.players.forEach(p=>{if(p)p.drawDone=false;});
+                    gameState.stage='betting2';
+                    gameState.phase='BETTING 2';
+                    resetBetRound(gameState);
+                    gameState.activeTurnSeat=nextSeat(gameState,gameState.dealerSeat);
+                    if(gameState.activeTurnSeat<0)resolveShowdown(gameState);
+                }else{
+                    gameState.activeTurnSeat=nextSeat(gameState,seat);
+                    if(gameState.activeTurnSeat<0)resolveShowdown(gameState);
+                }
+            }else{
+                advanceAfterAction(gameState);
+            }
+        }
+    }
+
+    gameState.players[seat]=null;
+    appendChatMessage('System',`${bot.name} ${t('botRemoved')}.`,true);
+    broadcastState();
+    renderTableUI();
+    scheduleBot();
+}
+
 function kickPlayer(playerId){
     if(!gameState.isHost||!playerId||playerId===gameState.myPlayerId)return;
     const p=gameState.players.find(x=>x?.id===playerId);

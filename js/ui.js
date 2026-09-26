@@ -167,6 +167,13 @@ function renderTableUI(){
             startBtn.disabled=!gameState.isHost||!canDeal;
             startBtn.title=t('dealHand');
         }
+
+        const resetBtn=document.getElementById('resetTableBtn');
+        if(resetBtn){
+            resetBtn.classList.toggle('hidden',!gameState.isHost);
+            resetBtn.title=t('resetTable');
+        }
+        
         document.getElementById('spectatorBanner').classList.toggle('hidden',!(mySeat<0&&gameState.status==='in-progress'));
 
         const sum=document.getElementById('playerHandSummary');
