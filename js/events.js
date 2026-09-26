@@ -105,6 +105,18 @@ function setupEventListeners(){
 
     document.getElementById('startGameBtn').onclick=()=>{if(gameState.isHost)startHand();};
 
+    document.getElementById('resetTableBtn').onclick=()=>{
+        if (!gameState.isHost) return;
+        showModal(
+            t('resetTable'), 
+            t('confirmResetTable'), 
+            [
+                { text: 'OK', bg: 'bg-blue-600 hover:bg-blue-500', onClick: async()=>{resetTable();} },
+                { text: 'Cancel', bg: 'bg-purple-600 hover:bg-purple-500', close:true }
+            ]
+        );
+    };
+
     document.addEventListener('click',e=>{
         const add=e.target.closest('[data-add-bot]');
         if(add&&gameState.isHost&&gameState.status==='lobby'){
@@ -115,9 +127,9 @@ function setupEventListeners(){
             return;
         }
         const remove=e.target.closest('[data-remove-bot]');
-        if(remove&&gameState.isHost&&gameState.status==='lobby'){
+        if(remove&&gameState.isHost){
             const seat=Number(remove.dataset.removeBot);
-            if(gameState.players[seat]?.isBot){gameState.players[seat]=null;broadcastState();renderTableUI();}
+            if(Number.isInteger(seat))removeBotFromTable(seat);
             return;
         }
         const kick=e.target.closest('[data-kick-player]');
