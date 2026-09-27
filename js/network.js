@@ -240,7 +240,7 @@ function applyTableConfig(config={}){
 }
 
 function initHostLocally(username){
-    gameState.isHost=true;gameState.myPlayerName=username;gameState.myPlayerId=generateId();
+    gameState.isHost=true;gameState.myPlayerName=username;gameState.myPlayerId=generateId(gameState.gameId);
     gameState.hostId=gameState.myPlayerId;gameState.hostPlayerId=gameState.myPlayerId;gameState.roomId=gameState.myPlayerId;gameState.gameId='poker';gameState.gameName='Poker';
     gameState.kickedPeerIds=[];gameState.kicked=false;gameState.backupHostId=null;gameState.spectators=[];
     loadRoomHistory();
@@ -309,16 +309,16 @@ function connectToHost(roomId){
     conn.on('error',e=>logMessage(`Host connection: ${e.type}`,'error'));
 }
 
-function joinRoomPeer(roomId,username){
+function joinRoomPeer(roomId,gameId,username){
     disconnectNetwork();
     clearJoinHandshakeTimer();
     roomJoinConfirmed=false;
     gameState.isHost=false;
     gameState.myPlayerName=username;
-    gameState.myPlayerId=generateId();
+    gameState.myPlayerId=generateId(gameId);
     gameState.roomId=roomId;
     gameState.hostId=roomId;
-    gameState.gameId='poker';
+    gameState.gameId=gameId;
     gameState.kicked=false;
     gameState.status='lobby';
     gameState.phase='LOBBY WAITING';

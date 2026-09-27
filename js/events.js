@@ -32,12 +32,29 @@ function setupEventListeners(){
     // If the page was opened via an invite link (?room=<id>), show a
     // one-click "Join Table" button pre-targeting that room instead of
     // making the user paste the room ID manually.
-    const room=new URLSearchParams(location.search).get('room');
-    const enterGameSelection=(hostMode)=>{
-        gameState.isHost=hostMode;
-        gameState.myPlayerName=input.value.trim()||'PokerPlayer';
-        gameState.gameId='poker';
-        gameState.gameName='Poker';
+    const room = new URLSearchParams(location.search).get('room');
+    const linkedGame = room?.match(/^ppg(.*?)-/)[1];
+
+    const joinRoomDirect = (roomId, gameId) => {
+        // Poker is the only currently playable game. Add game-specific
+        // startup here as other games are implemented.
+        if (!roomId || gameId !== 'poker') return false;
+
+        gameState.gameId = gameId;
+        gameState.gameName = selectedGameLabel(gameId);
+        joinRoomPeer(roomId, gameId, input.value.trim() || 'PokerPlayer');
+        showScreen('gameScreen');
+        renderTableUI();
+        return true;
+    };
+
+    const enterGameSelection = (hostMode, gameId = null) => {
+        gameState.isHost = hostMode;
+        gameState.myPlayerName = input.value.trim() || 'PokerPlayer';
+        gameState.gameId = gameId || 'poker';
+        gameState.gameName = selectedGameLabel(gameState.gameId);
+
+        if (!hostMode && gameId === 'poker' && joinRoomDirect(room, gameId)) return;
         showScreen('gameSelectionScreen');
     };
 
@@ -48,7 +65,7 @@ function setupEventListeners(){
         // The old code replaced createTableBtn and then immediately tried to
         // access it again, throwing a TypeError and aborting all later listeners.
         document.getElementById('contextActionContainer').innerHTML=`<button id="joinTableBtn" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow transition flex items-center justify-center gap-2"><i class="fa-solid fa-right-to-bracket"></i><span>${t('joinBtn')} Table (${room})</span></button>`;
-        document.getElementById('joinTableBtn').onclick=()=>enterGameSelection(false);
+        document.getElementById('joinTableBtn').onclick=()=>enterGameSelection(false, linkedGame);
         if(manualJoinContainer)manualJoinContainer.classList.add('hidden');
     }else if(createBtn){
         // "Create New Table (Host)": become the host (initHostLocally) and go
@@ -83,10 +100,9 @@ function setupEventListeners(){
             openPokerConfig();
         }else{
             const r=new URLSearchParams(location.search).get('room');
-            if(!r)return showScreen('welcomeScreen');
-            joinRoomPeer(r,input.value.trim()||'PokerPlayer');
-            showScreen('gameScreen');
-            renderTableUI();
+            if (!r || !joinRoomDirect(r, gameState.gameId)) {
+                if (!r) showScreen('welcomeScreen');
+            }
         }
     };
 
@@ -122,7 +138,7 @@ function setupEventListeners(){
         if(add&&gameState.isHost&&gameState.status==='lobby'){
             const seat=Number(add.dataset.addBot);
             if(!Number.isInteger(seat)||seat<0||seat>=gameState.maxSeats||gameState.players[seat])return;
-            gameState.players[seat]={id:'bot-'+generateId(),name:proceduralNameGenerator().next().value + 'Bot',chips:gameState.startingStack,currentBet:0,folded:false,isBot:true,cards:[]};
+            gameState.players[seat]={id:'bot-'+generateId(gameState.gameId),name:proceduralNameGenerator().next().value + 'Bot',chips:gameState.startingStack,currentBet:0,folded:false,isBot:true,cards:[]};
             broadcastState();renderTableUI();
             return;
         }
@@ -166,11 +182,14 @@ function setupEventListeners(){
     // once hosting has started) to the clipboard so it can be shared;
     // falls back to showing it in an showAlert if clipboard access fails.
     document.getElementById('shareRoomBtn').onclick=async()=>{
-        try{
-            await navigator.clipboard.writeText(location.href);
-            showAlert('Invite link copied!', location.href);
+        const url = new URL(location.href);
+        const roomId = gameState.roomId || url.searchParams.get('room');
+        url.searchParams.set('room', roomId);
+        try {
+            await navigator.clipboard.writeText(url.href);
+            showAlert('Invite link copied!', url.href);
         } catch {
-            showAlert('Copy and share link:', location.href);
+            showAlert('Copy and share link:', url.href);
         }
     };
 
