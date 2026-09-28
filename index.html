@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>P2P Games Engine</title>
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- PeerJS for WebRTC P2P Communications -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <!-- FontAwesome Icons -->
@@ -207,7 +207,7 @@
             </div>
             <!-- Header Right Action Counters & Share -->
             <div class="flex items-center space-x-1.5 sm:space-x-2">
-                <button id="langToggleBtn" title="Switch language / Cambia lingua" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition">
+                <button id="langToggleBtn" title="Switch Language" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition">
                     <i class="hidden sm:inline fa-solid fa-globe text-blue-400"></i>
                     <span class="sm:text-[0.625rem]" id="langToggleLabel">IT</span>
                 </button>
@@ -217,18 +217,18 @@
                     <span class="hidden sm:inline" data-i18n="invite">Invite</span>
                 </button>
 
-                <button id="resetTableBtn" title="Reset table" class="hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white border border-amber-600/60 text-xs font-bold transition">
+                <button id="resetTableBtn" title="Reset Table" disabled class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white border border-amber-600/60 disabled:opacity-30 disabled:pointer-events-none text-xs font-bold transition">
                     <i class="fa-solid fa-rotate-right"></i>
-                    <span class="hidden sm:inline" data-i18n="resetTable">Reset Table</span>
+                    <span class="hidden sm:inline" data-i18n="resetTable">Reset</span>
                 </button>
 
-                <button id="toggleLogsBtn" class="relative px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                <button id="toggleLogsBtn" title="Toggle Logs" class="relative px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-terminal text-blue-400"></i>
                     <span class="hidden md:inline">Logs</span>
                     <span id="logsBadge" class="hidden absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
                 </button>
 
-                <button id="toggleChatBtn" class="relative px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                <button id="toggleChatBtn" title="Toggle Chat" class="relative px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-comments text-emerald-400"></i>
                     <span class="hidden md:inline">Chat</span>
                     <span id="chatBadge" class="hidden absolute -top-1 -right-1 bg-emerald-500 text-slate-950 text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
@@ -371,7 +371,7 @@
     <script src="js/utils.js"></script>
     <script src="js/hand-evaluator.js"></script>
     <script src="js/game-logic.js"></script>
-    <script src="js/network-config.js"></script>
+    <script src="network-config.js"></script>
     <script src="js/network.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/events.js"></script>

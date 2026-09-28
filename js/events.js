@@ -33,7 +33,7 @@ function setupEventListeners(){
     // one-click "Join Table" button pre-targeting that room instead of
     // making the user paste the room ID manually.
     const room = new URLSearchParams(location.search).get('room');
-    const linkedGame = room?.match(/^ppg(.*?)-/)[1];
+    const linkedGame = room?.match(/^ppg(.*?)-/)?.[1] ?? null;
 
     const joinRoomDirect = (roomId, gameId) => {
         // Poker is the only currently playable game. Add game-specific
@@ -48,13 +48,13 @@ function setupEventListeners(){
         return true;
     };
 
-    const enterGameSelection = (hostMode, gameId = null) => {
+    const enterGameSelection = (hostMode, gameId = null, roomId = room) => {
         gameState.isHost = hostMode;
         gameState.myPlayerName = input.value.trim() || 'PokerPlayer';
         gameState.gameId = gameId || 'poker';
         gameState.gameName = selectedGameLabel(gameState.gameId);
 
-        if (!hostMode && gameId === 'poker' && joinRoomDirect(room, gameId)) return;
+        if (!hostMode && joinRoomDirect(roomId, gameId)) return;
         showScreen('gameSelectionScreen');
     };
 
@@ -77,9 +77,10 @@ function setupEventListeners(){
     // shortcut above).
     document.getElementById('manualJoinBtn').onclick=()=>{
         const r=document.getElementById('joinRoomInput').value.trim();
-        if(!r)return showAlert('Enter a Room ID', 'Empty/Invalid id entered. Paste only the part after ?room=');
+        const ml=r.match(/^ppg(.*?)-/);
+        if(!r || !ml) return showAlert('Room ID Error', 'Empty/Invalid id entered. Paste only the part after ?room=');
         history.replaceState({},'',`${location.pathname}?room=${encodeURIComponent(r)}`);
-        enterGameSelection(false);
+        enterGameSelection(false, ml[1], r);
     };
 
     document.querySelectorAll('.game-choice[data-game-id]').forEach(btn=>{

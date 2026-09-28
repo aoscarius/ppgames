@@ -54,7 +54,7 @@ body {
 
 /* --- Poker visual polish --- */
 .poker-card {
-    width: clamp(58px, 7.2vw, 92px);
+    /* width: clamp(58px, 7.2vw, 92px); */
     aspect-ratio: 5 / 7;
     height: auto !important;
     flex: 0 0 auto;
@@ -207,7 +207,3 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .winner-card { animation: none; }
 }
-
-/* Gameplay controls are visible only during an active hand. */
-#actionControls.hidden { display:none !important; }
-#startGameBtn.hidden { display:none !important; }

@@ -69,7 +69,7 @@ function renderSeat(i){
 
     if(i >= gameState.maxSeats)return;
     if(!p){
-        const botControls=gameState.isHost?`<div class="seat-empty-actions"><button data-add-bot="${i}" title="${t('addBot')}" class="seat-mini-btn seat-add"><i class="fa-solid fa-plus"></i></button></div>`:'';
+        const botControls=(gameState.isHost&&gameState.status==='lobby')?`<div class="seat-empty-actions"><button data-add-bot="${i}" title="${t('addBot')}" class="seat-mini-btn seat-add"><i class="fa-solid fa-plus"></i></button></div>`:'';
         el.innerHTML=`<div class="empty-seat"><span>${t('seat',{num:i+1})}</span>${botControls}</div>`;
         return;
     }
@@ -164,13 +164,16 @@ function renderTableUI(){
         if(startBtn){
             const canDeal=gameState.status!=='in-progress';
             // Deal Hand is a host-only control and lives beside the action area.
+            // resetBtn.classList.toggle('hidden',!gameState.isHost);
             startBtn.disabled=!gameState.isHost||!canDeal;
             startBtn.title=t('dealHand');
         }
 
         const resetBtn=document.getElementById('resetTableBtn');
         if(resetBtn){
-            resetBtn.classList.toggle('hidden',!gameState.isHost);
+            // Reset Table is a host-only control and lives beside the title area.
+            // resetBtn.classList.toggle('hidden',!gameState.isHost);
+            resetBtn.disabled=!gameState.isHost;
             resetBtn.title=t('resetTable');
         }
         
