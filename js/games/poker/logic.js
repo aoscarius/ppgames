@@ -235,8 +235,8 @@ function initHand(state){
         return {ok:false,error:'BLINDS_ASSIGN_FAIL'};
     }
 
-    charge(state.players[sb],state.smallBlind);
-    charge(state.players[bb],state.bigBlind);
+    charge(state,state.players[sb],state.smallBlind);
+    charge(state,state.players[bb],state.bigBlind);
     state.currentHighBet=Math.max(state.players[sb].currentBet,state.players[bb].currentBet);
     state.currentBet=state.currentHighBet; state.minRaise=state.bigBlind;
     document.getElementById('raiseInput').value = state.minRaise;

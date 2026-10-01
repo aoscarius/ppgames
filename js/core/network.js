@@ -14,20 +14,15 @@ function getPeerOptions(){
 
 function publicStateFor(peerId){
     const copy=JSON.parse(JSON.stringify(gameState));
-    copy.deck=[];
     copy.isHost=false;
     copy.myPlayerId=null;
     copy.myPlayerName='';
     copy.hostId=gameState.hostId;
     copy.hostPlayerId=gameState.hostPlayerId;
     copy.network={hostId:gameState.hostId,roomId:gameState.roomId,connectedPlayerIds:getConnectedPlayerIds()};
-    const revealAll=copy.phase==='SHOWDOWN';
-    copy.players.forEach(p=>{
-        if(!p?.cards)return;
-        const mine=p.id===peerId;
-        const shown=revealAll&&!p.folded;
-        if(!mine&&!shown)p.cards=p.cards.map(()=>null);
-    });
+    // Each game strips whatever is private to other players (poker hides
+    // hole cards; chess is perfect-information and hides nothing).
+    currentGame()?.publicState?.(copy,peerId);
     return copy;
 }
 
@@ -102,19 +97,9 @@ function applySyncedState(incoming){
     if(!gameState.logHistory)gameState.logHistory=[];
     renderTableUI();
     renderRoomHistory();
-    scheduleBot();
+    currentGame()?.scheduleBots?.();
 }
 
-function hostHandleAction(data,conn){
-    if(!gameState.isHost||data.roomId!==gameState.roomId)return;
-    const seat=gameState.players.findIndex(p=>p?.id===data.playerId);
-    if(seat<0||gameState.players[seat].isBot)return;
-    const result=data.action==='draw'
-        ?processDraw(gameState,seat,data.indices||[])
-        :processAction(gameState,seat,data.action,data.amount);
-    if(!result.ok)sendTo(conn,{type:'ACTION_ERROR',message:result.error});
-    broadcastState();renderTableUI();scheduleBot();
-}
 
 function handleJoin(data,conn){
     if(!gameState.isHost)return;
@@ -128,7 +113,7 @@ function handleJoin(data,conn){
         const empty=gameState.players.findIndex((p,i)=>!p&&i<gameState.maxSeats);
         if(gameState.status==='lobby'&&empty>=0){
             seat=empty;
-            gameState.players[seat]={...data.player,chips:gameState.startingStack,currentBet:0,folded:false,isBot:false,cards:[]};
+            gameState.players[seat]=currentGame().createPlayer(data.player);
             appendChatMessage('System',`${data.player.name} joined Seat ${seat+1}.`,true);
         }else if(gameState.status==='lobby'&&gameState.players.filter(Boolean).length>=gameState.maxSeats){
             sendTo(conn,{type:'JOIN_ERROR',message:t('roomFull')});try{conn.close();}catch{};return;
@@ -175,11 +160,10 @@ function handleNetworkData(data,conn){
         return;
     }
 
-    if(data.type==='ACTION_REQUEST'&&gameState.isHost)hostHandleAction(data,conn);
-    else if(data.type==='START_REQUEST'&&gameState.isHost)startHand();
-    else if(data.type==='TABLE_CONFIG'&&gameState.isHost&&gameState.status==='lobby'){
-        const r=applyTableConfig(data.config);if(r.ok){broadcastState();renderTableUI();}
-    }
+    // Game-specific packets (moves, bets, config...) are handled by the active game.
+    if(gameState.isHost&&currentGame()?.onMessage?.(data,conn))return;
+
+    if(data.type==='START_REQUEST'&&gameState.isHost)currentGame()?.startRequested?.();
     else if(data.type==='CHAT'){
         if(gameState.isHost){
             if(conn.peer!==data.senderId)return;
@@ -238,29 +222,21 @@ function handleNetworkData(data,conn){
     else if(data.type==='ACTION_ERROR')showAlert('Network Error', `Network data error occurred: ${data.message}`);
 }
 
-function applyTableConfig(config={}){
-    const currency=config.currency==='EUR'?'EUR':'USD';
-    const startingStack=Number(config.startingStack);
-    const maxSeats=Math.max(2,Math.min(8,Math.floor(Number(config.maxSeats))));
-    const smallBlind=Number(config.smallBlind), bigBlind=Number(config.bigBlind);
-    const variant=config.variant==='5card'?'draw':'holdem';
-    if(!Number.isFinite(startingStack)||startingStack<=0)return {ok:false,error:t('stackError')};
-    if(!Number.isFinite(maxSeats)||maxSeats<2||maxSeats>8)return {ok:false,error:t('minMaxSeats')};
-    if(!Number.isFinite(smallBlind)||smallBlind<=0||!Number.isFinite(bigBlind)||bigBlind<smallBlind)return {ok:false,error:t('blindsError')};
-    gameState.currency=currency;gameState.startingStack=startingStack;gameState.maxSeats=maxSeats;
-    gameState.smallBlind=smallBlind;gameState.bigBlind=bigBlind;gameState.minRaise=bigBlind;gameState.variant=variant;
-    document.getElementById('raiseInput').value=gameState.minRaise;
-    gameState.players.forEach(p=>{if(p&&gameState.status==='lobby')p.chips=startingStack;});
-    return {ok:true};
-}
-
 function initHostLocally(username){
+    // gameState.gameId/gameName are already set by the game-selection screen
+    // (see events.js) before this runs -- intentionally not hardcoded here,
+    // so this seats the host locally for whichever game was picked.
+    // The room id embeds the game id (see generateId() in core/utils.js:
+    // ids look like "ppgpoker-abc1234"), so an invite link is fully
+    // self-describing -- a joiner can go straight into the right game
+    // without a separate query param (see joinRoomDirect() in events.js).
     gameState.isHost=true;gameState.myPlayerName=username;gameState.myPlayerId=generateId(gameState.gameId);
-    gameState.hostId=gameState.myPlayerId;gameState.hostPlayerId=gameState.myPlayerId;gameState.roomId=gameState.myPlayerId;gameState.gameId='poker';gameState.gameName='Poker';
+    gameState.hostId=gameState.myPlayerId;gameState.hostPlayerId=gameState.myPlayerId;gameState.roomId=gameState.myPlayerId;
     gameState.kickedPeerIds=[];gameState.kicked=false;gameState.backupHostId=null;gameState.spectators=[];
     loadRoomHistory();
     gameState.players=new Array(8).fill(null);
-    gameState.players[0]={id:gameState.myPlayerId,name:username,chips:gameState.startingStack,currentBet:0,folded:false,isBot:false,cards:[]};
+    currentGame().resetRoom();
+    gameState.players[0]=currentGame().createPlayer({id:gameState.myPlayerId,name:username,isBot:false});
     history.pushState({},'',`${location.pathname}?room=${encodeURIComponent(gameState.roomId)}`);
     renderTableUI();
 }
@@ -268,15 +244,14 @@ function initHostLocally(username){
 function removeDisconnectedPlayer(peerId){
     const i=gameState.players.findIndex(p=>p?.id===peerId);
     if(i<0||gameState.players[i]?.disconnected)return;
-
-    const p=gameState.players[i];
-    const name=p.name||'Player';
-
-    if(gameState.status==='lobby'){
-        gameState.players[i]=null;
-    }else{
-        p.disconnected=true;p.folded=true;p.actedThisRound=true;p.lastAction='Disconnected';
-        if(gameState.activeTurnSeat===i)advanceAfterAction(gameState);
+    const name=gameState.players[i]?.name||'Player';
+    if(gameState.status==='lobby')gameState.players[i]=null;
+    else{
+        // Mid-game policy belongs to the game (poker folds the seat; turn-based
+        // games just wait for the player to reconnect).
+        const game=currentGame();
+        if(game?.onPlayerDisconnected)game.onPlayerDisconnected(i);
+        else if(gameState.players[i])gameState.players[i].disconnected=true;
     }
     appendChatMessage('System',`${name} disconnected.`,true);
 }
@@ -305,7 +280,7 @@ function attachHostConnection(conn){
 function initPeerNetwork(){
     if(gameState.isHost)startClientWatchdog();
     if(peerInstance)try{peerInstance.destroy();}catch{}
-    peerInstance=new Peer(gameState.roomId, getPeerOptions());
+    peerInstance=new Peer(gameState.roomId,getPeerOptions());
     peerInstance.on('open',id=>{if(gameState.isHost)startHostHeartbeat();gameState.hostId=id;document.getElementById('roomStatusBadge')?.classList.remove('text-rose-400');document.getElementById('roomStatusBadge')?.classList.add('text-emerald-400');document.getElementById('roomStatusBadge').textContent=t('online');logMessage(`Room online: ${id}`,'success');});
     peerInstance.on('connection',attachHostConnection);
     peerInstance.on('error',e=>logMessage(`PeerJS: ${e.type}`,'error'));
@@ -314,14 +289,14 @@ function initPeerNetwork(){
 
 function connectToHost(roomId){
     if(!peerInstance||peerInstance.destroyed)return;
-    const old=peerConnections[roomId];
-    if(old)try{old.close();}catch{}
+    const old=peerConnections[roomId];if(old)try{old.close();}catch{}
     const conn=peerInstance.connect(roomId,{reliable:true,serialization:'json'});
     peerConnections[roomId]=conn;
     conn.on('open',()=>{
         clearHostRecovery();
         setRoomConnectionStatus(false,'connecting');
-        sendTo(conn,{type:'JOIN_REQUEST',roomId,gameId:'poker',player:{id:gameState.myPlayerId,name:gameState.myPlayerName,chips:gameState.startingStack,currentBet:0,folded:false,isBot:false,cards:[]}});
+        const player=currentGame().createPlayer({id:gameState.myPlayerId,name:gameState.myPlayerName,isBot:false});
+        sendTo(conn,{type:'JOIN_REQUEST',roomId,gameId:gameState.gameId,player});
     });
     conn.on('data',d=>handleNetworkData(d,conn));
     conn.on('close',()=>{
@@ -331,6 +306,10 @@ function connectToHost(roomId){
     conn.on('error',e=>logMessage(`Host connection: ${e.type}`,'error'));
 }
 
+// gameId is passed explicitly (rather than read off gameState.gameId)
+// so a direct invite-link join can set it up front, self-contained --
+// see joinRoomDirect() in events.js, which parses it straight out of the
+// room id (generateId() embeds it: "ppg<gameId>-...").
 function joinRoomPeer(roomId,gameId,username){
     disconnectNetwork();
     clearJoinHandshakeTimer();
@@ -341,15 +320,11 @@ function joinRoomPeer(roomId,gameId,username){
     gameState.roomId=roomId;
     gameState.hostId=roomId;
     gameState.gameId=gameId;
+    gameState.gameName=selectedGameLabel(gameId);
     gameState.kicked=false;
     gameState.status='lobby';
-    gameState.phase='LOBBY WAITING';
-    gameState.stage='lobby';
     gameState.players=new Array(8).fill(null);
-    gameState.communityCards=[];
-    gameState.pot=0;
-    gameState.currentBet=0;
-    gameState.currentHighBet=0;
+    currentGame()?.resetRoom?.();
     loadRoomHistory();
     setRoomConnectionStatus(false,'connecting');
     renderTableUI();
@@ -432,24 +407,21 @@ function reconnectToPromotedHost(attempt=0){
 function promoteToHost(){
     const snapshot=gameState.backupState||gameState;
     const preservedId=gameState.myPlayerId,preservedName=gameState.myPlayerName,roomId=gameState.roomId;
+    // The "old host" may be identified a few different ways depending on
+    // exactly when the snapshot was taken (its own id, its host pointer
+    // fields, or this room's id) -- collect them all so a stale/renamed
+    // seat is still recognized and released below.
     const oldHostIds=new Set([snapshot.hostPlayerId,snapshot.myPlayerId,snapshot.hostId,roomId].filter(id=>id&&id!==preservedId));
     if(peerInstance)try{peerInstance.destroy();}catch{}
     peerInstance=null;peerConnections={};
     Object.assign(gameState,JSON.parse(JSON.stringify(snapshot)));
     gameState.roomId=roomId;gameState.myPlayerId=preservedId;gameState.myPlayerName=preservedName;
     gameState.isHost=true;gameState.hostId=roomId;gameState.hostPlayerId=preservedId;gameState.kicked=false;gameState.backupState=null;
-    const oldHostSeat=gameState.players.findIndex(p=>p && oldHostIds.has(p.id));
-    if(oldHostSeat>=0){
-        // The previous host no longer owns a seat after promotion. Any chips
-        // already committed to the pot remain in the pot; removing the seat
-        // prevents the disconnected host from blocking the new host's game.
-        const wasActiveTurn=gameState.activeTurnSeat===oldHostSeat;
-        gameState.players[oldHostSeat]=null;
-        if(wasActiveTurn && gameState.status==='in-progress') advanceAfterAction(gameState);
-    }
+    const oldHostSeat=gameState.players.findIndex(p=>p&&oldHostIds.has(p.id));
+    if(oldHostSeat>=0)currentGame()?.onHostPromoted?.(oldHostSeat);
     const openHost=()=>{
         peerInstance=new Peer(roomId,getPeerOptions());
-        peerInstance.on('open',()=>{startHostHeartbeat();startClientWatchdog();hostRecoveryInProgress=false;gameState.hostId=roomId;gameState.hostPlayerId=preservedId;logMessage('Host promoted after previous host disconnected.','success');broadcastPacket({type:'HOST_ANNOUNCE',roomId,hostId:roomId});broadcastState();renderTableUI();scheduleBot();});
+        peerInstance.on('open',()=>{startHostHeartbeat();startClientWatchdog();hostRecoveryInProgress=false;gameState.hostId=roomId;gameState.hostPlayerId=preservedId;logMessage('Host promoted after previous host disconnected.','success');broadcastPacket({type:'HOST_ANNOUNCE',roomId,hostId:roomId});broadcastState();renderTableUI();currentGame()?.scheduleBots?.();});
         peerInstance.on('connection',attachHostConnection);
         peerInstance.on('error',e=>{
             if(e.type==='unavailable-id'){try{peerInstance.destroy();}catch{}setTimeout(openHost,800);return;}
@@ -466,81 +438,47 @@ function ensureHostConnection(){
     if(!hostConn?.open)connectToHost(gameState.hostId||gameState.roomId);
 }
 
+// Return the room to the lobby without tearing it down: seats, host, and
+// the room link all stay put, but the current game/hand/match is scrapped.
+// The button that triggers this lives in the shared header (same place,
+// same look, for every game -- see index.html) and is wired once here,
+// not per game. Every game still gets to reset its own fields (chips,
+// board, score...) via the onTableReset() hook, with players already
+// pruned/preserved for it by the generic part below.
 function resetTable(){
-    if (!gameState.isHost) return;
-
+    if(!gameState.isHost)return;
     clearTimeout(botTimer);
-    drawSelection.clear();
 
-    // Reset the game itself while preserving connected seated players and bots.
-    // Disconnected human seats are released so a new player can join immediately.
+    // Release disconnected human seats so a new player can join immediately;
+    // bots and connected humans stay seated. What "reset" means for a kept
+    // seat's own game data (chips, cards, score...) is up to the game.
     gameState.players=gameState.players.map(p=>{
-        if (!p) return null;
-        if (!p.isBot && p.disconnected) return null;
-        return {
-            ...p,
-            chips:gameState.startingStack,
-            currentBet:0,
-            folded:false,
-            allIn:false,
-            out:false,
-            disconnected:false,
-            spectator:false,
-            cards:[],
-            evalResult:null,
-            drawDone:false,
-            actedThisRound:false,
-            lastAction:''
-        };
+        if(!p)return null;
+        if(!p.isBot&&p.disconnected)return null;
+        return {...p,disconnected:false,spectator:false};
     });
+    gameState.status='lobby';
+    gameState.kickedPeerIds=[];
 
+    // Anyone who joined while a game/hand was already running landed in
+    // gameState.spectators (see handleJoin()) instead of a seat. Now that
+    // we're back at the lobby, seat any of them still connected and there's
+    // room for, in join order; the rest stay waiting for next time.
     const connectedIds=new Set(getConnectedPlayerIds());
     const seatedIds=new Set(gameState.players.filter(Boolean).map(p=>p.id));
     const waiting=Array.isArray(gameState.spectators)?gameState.spectators:[];
     const stillWaiting=[];
-
     for(const player of waiting){
         if(!player?.id||seatedIds.has(player.id))continue;
-
         const seat=gameState.players.findIndex((p,i)=>!p&&i<gameState.maxSeats);
-        if(seat<0||!connectedIds.has(player.id)){
-            stillWaiting.push(player);
-            continue;
-        }
-
-        gameState.players[seat]={
-            ...player,
-            chips:gameState.startingStack,
-            currentBet:0,
-            folded:false,
-            allIn:false,
-            out:false,
-            disconnected:false,
-            spectator:false,
-            isBot:false,
-            cards:[]
-        };
+        if(seat<0||!connectedIds.has(player.id)){stillWaiting.push(player);continue;}
+        gameState.players[seat]=currentGame().createPlayer(player);
         seatedIds.add(player.id);
         appendChatMessage('System',`${player.name} joined Seat ${seat+1}.`,true);
     }
-
-    gameState.status='lobby';
-    gameState.phase='LOBBY WAITING';
-    gameState.stage='lobby';
-    gameState.pot=0;
-    gameState.currentBet=0;
-    gameState.currentHighBet=0;
-    gameState.minRaise=gameState.bigBlind;
-    gameState.dealerSeat=-1;
-    gameState.activeTurnSeat=-1;
-    gameState.communityCards=[];
-    gameState.deck=[];
-    gameState.showdownSummary='';
     gameState.spectators=stillWaiting;
-    gameState.kickedPeerIds=[];
 
-    const raiseInput=document.getElementById('raiseInput');
-    if (raiseInput) raiseInput.value=gameState.minRaise;
+    currentGame()?.onTableReset?.();
 
     appendChatMessage('System',t('tableReset'),true);
     broadcastState();
@@ -548,109 +486,45 @@ function resetTable(){
     syncBackupHost();
 }
 
-function removeBotFromTable(seat){
-    if(!gameState.isHost)return;
-    if(!Number.isInteger(seat)||seat<0||seat>=gameState.maxSeats)return;
-
-    const bot=gameState.players[seat];
-    if(!bot?.isBot)return;
-
-    clearTimeout(botTimer);
-
-    const wasActive=gameState.status==='in-progress' && gameState.activeTurnSeat===seat;
-
-    // A bot that leaves during a hand is treated like a folded/disconnected
-    // player. Any chips it already put into the pot stay there.
-    if(gameState.status==='in-progress'){
-        bot.folded=true;
-        bot.out=true;
-        bot.actedThisRound=true;
-        bot.drawDone=true;
-        bot.lastAction='Removed by host';
-
-        if(wasActive){
-            if(gameState.stage==='draw'){
-                const remaining=gameState.players.filter((p,i)=>
-                    i!==seat && p && !p.folded && !p.out && !p.drawDone && !p.allIn
-                );
-                if(remaining.length===0){
-                    gameState.players.forEach(p=>{if(p)p.drawDone=false;});
-                    gameState.stage='betting2';
-                    gameState.phase='BETTING 2';
-                    resetBetRound(gameState);
-                    gameState.activeTurnSeat=nextSeat(gameState,gameState.dealerSeat);
-                    if(gameState.activeTurnSeat<0)resolveShowdown(gameState);
-                }else{
-                    gameState.activeTurnSeat=nextSeat(gameState,seat);
-                    if(gameState.activeTurnSeat<0)resolveShowdown(gameState);
-                }
-            }else{
-                advanceAfterAction(gameState);
-            }
-        }
-    }
-
-    gameState.players[seat]=null;
-    appendChatMessage('System',`${bot.name} ${t('botRemoved')}.`,true);
-    broadcastState();
-    renderTableUI();
-    scheduleBot();
-}
-
 function kickPlayer(playerId){
     if(!gameState.isHost||!playerId||playerId===gameState.myPlayerId)return;
 
     const seat=gameState.players.findIndex(p=>p?.id===playerId);
     if(seat<0)return;
-
     const player=gameState.players[seat];
-    gameState.kickedPeerIds=Array.isArray(gameState.kickedPeerIds)
-        ?gameState.kickedPeerIds:[];
-    if(!gameState.kickedPeerIds.includes(playerId)){
-        gameState.kickedPeerIds.push(playerId);
-    }
 
-    sendTo(peerConnections[playerId],{
-        type:'KICK',
-        roomId:gameState.roomId,
-        playerId,
-        message:t('playerKicked')
-    });
+    gameState.kickedPeerIds=Array.isArray(gameState.kickedPeerIds)?gameState.kickedPeerIds:[];
+    if(!gameState.kickedPeerIds.includes(playerId))gameState.kickedPeerIds.push(playerId);
 
-    removeDisconnectedPlayer(playerId,'was kicked');
+    sendTo(peerConnections[playerId],{type:'KICK',roomId:gameState.roomId,playerId,message:t('playerKicked')});
 
+    // Run the normal disconnect handling first (mid-hand: poker folds the
+    // seat and advances the turn so betting doesn't stall) and only then
+    // clear the seat outright -- a kick is permanent, unlike a plain
+    // disconnect which keeps the seat reserved for reconnection.
+    removeDisconnectedPlayer(playerId);
     gameState.players[seat]=null;
     delete lastClientHeartbeatAt[playerId];
 
     appendChatMessage('System',`${player.name} ${t('playerKicked')}.`,true);
     broadcastState();
     renderTableUI();
-    scheduleBot();
+    currentGame()?.scheduleBots?.();
 
     try{peerConnections[playerId]?.close();}catch{}
     delete peerConnections[playerId];
 }
 
-function startHand(){
-    if(!gameState.isHost)return;
-    const r=initHand(gameState);if(!r.ok){showAlert('Game Error', `Game error occurred: ${r.error}`);return;}
-    appendChatMessage('System',`Hand #${gameState.handNumber} started. Blinds ${money(gameState,gameState.smallBlind)}/${money(gameState,gameState.bigBlind)}.`,true);
-    broadcastState();renderTableUI();scheduleBot();
-}
-
-function requestAction(action,amount=0,indices=[]){
-    if(gameState.isHost){
-        const seat=gameState.players.findIndex(p=>p?.id===gameState.myPlayerId);
-        const r=action==='draw'?processDraw(gameState,seat,indices):processAction(gameState,seat,action,amount);
-        if(!r.ok){showAlert('Game Error', `Game error occurred: ${r.error}`);return;}
-        broadcastState();renderTableUI();scheduleBot();
-    }else{
-        const host=peerConnections[gameState.hostId||gameState.roomId];
-        if(host?.open)sendTo(host,{type:'ACTION_REQUEST',roomId:gameState.roomId,playerId:gameState.myPlayerId,action,amount,indices});
-        else scheduleHostRecovery();
-    }
-}
-
+/* --------------------------------------------------------------------
+   HEARTBEAT / WATCHDOG - lets both sides notice a dead connection even
+   when PeerJS/WebRTC never fires a close/error event for it (which
+   happens more often than you'd hope on flaky mobile networks). The
+   host periodically broadcasts HOST_HEARTBEAT; each client periodically
+   sends CLIENT_HEARTBEAT back. If either side goes quiet for too long,
+   the watchdog treats it exactly like a real disconnect (scheduleHostRecovery
+   / removeDisconnectedPlayer) -- fully game-agnostic, so it belongs here
+   in core rather than in any one game.
+   -------------------------------------------------------------------- */
 let hostHeartbeatTimer=null;
 let hostWatchdogTimer=null;
 let lastHostHeartbeatAt=0;
@@ -668,11 +542,7 @@ function startHostHeartbeat(){
             hostHeartbeatTimer=null;
             return;
         }
-        broadcastPacket({
-            type:'HOST_HEARTBEAT',
-            roomId:gameState.roomId,
-            hostId:gameState.hostId
-        });
+        broadcastPacket({type:'HOST_HEARTBEAT',roomId:gameState.roomId,hostId:gameState.hostId});
     },2000);
 }
 
@@ -694,13 +564,7 @@ function startClientHeartbeat(){
     clientHeartbeatTimer=setInterval(()=>{
         if(gameState.isHost||gameState.kicked||!roomJoinConfirmed)return;
         const host=peerConnections[gameState.hostId||gameState.roomId];
-        if(host?.open){
-            sendTo(host,{
-                type:'CLIENT_HEARTBEAT',
-                roomId:gameState.roomId,
-                playerId:gameState.myPlayerId
-            });
-        }
+        if(host?.open)sendTo(host,{type:'CLIENT_HEARTBEAT',roomId:gameState.roomId,playerId:gameState.myPlayerId});
     },2000);
 }
 
@@ -713,13 +577,13 @@ function startClientWatchdog(){
             p&&!p.isBot&&p.id!==gameState.myPlayerId&&!p.disconnected&&
             now-(lastClientHeartbeatAt[p.id]||0)>CLIENT_TIMEOUT_MS
         );
-
         expired.forEach(p=>{
             removeDisconnectedPlayer(p.id);
             delete lastClientHeartbeatAt[p.id];
             broadcastState();
             renderTableUI();
         });
-        if(expired.length)scheduleBot();
+        if(expired.length)currentGame()?.scheduleBots?.();
     },2000);
 }
+

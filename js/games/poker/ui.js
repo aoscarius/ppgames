@@ -1,8 +1,9 @@
-function showScreen(id){
-    ['welcomeScreen','gameSelectionScreen','pokerConfigScreen','gameScreen'].forEach(x=>document.getElementById(x)?.classList.add('hidden'));
-    document.getElementById(id)?.classList.remove('hidden');
-}
-function selectedGameLabel(id){return id==='poker'?t('pokerGame'):id==='chess'?t('chessGame'):id==='othello'?t('othelloGame'):t('navalGame');}
+/* ========================================================================
+   POKER UI - table configuration form, radial seats, community cards and
+   the per-render table repaint. renderPokerUI() is the poker module's
+   `render` hook (see games/poker/game.js); the core calls it whenever the
+   state changes and poker is the active game.
+   ======================================================================== */
 function readPokerConfig(){
     return {
         currency:document.getElementById('currencySelect').value,
@@ -97,13 +98,11 @@ function renderSeat(i){
     el.innerHTML=`<div class="seat-player ${turn?'seat-turn':''}">\n        <div class="seat-card">\n            ${hostBadge}${kick}${botRemove}\n            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.name)}" class="seat-avatar" alt="${p.name}">\n            <div class="seat-name">${p.name}</div>\n            <div class="seat-stack">${money(gameState,p.chips)}</div>\n            ${cards}\n            ${p.folded?`<span class="seat-status seat-folded">${t('folded')}</span>`:''}\n            ${p.allIn?`<span class="seat-status seat-allin">${t('allIn')}</span>`:''}\n            ${p.evalResult&&gameState.phase==='SHOWDOWN'?`<span class="seat-hand">${localizedHandType(p.evalResult.typeName)}</span>`:''}\n        </div>\n    </div>`;
 }
 
-function renderTableUI(){
+function renderPokerUI(){
     try{
         positionPokerSeats();
         document.getElementById('potDisplay').textContent=money(gameState,gameState.pot);
         document.getElementById('currentBetDisplay').textContent=money(gameState,gameState.currentHighBet||gameState.currentBet||0);
-        document.getElementById('variantLabel').textContent=gameState.variant==='holdem'?"Texas Hold'em":"5-Card Draw";
-        const cfg=document.getElementById('tableConfigLabel');if(cfg)cfg.textContent=`${currencySymbol(gameState)}${gameState.startingStack} · ${gameState.maxSeats} ${t('players')} · ${money(gameState,gameState.smallBlind)}/${money(gameState,gameState.bigBlind)}`;
         const cc=document.getElementById('communityCards');
         // A community card can be part of several tied winners' hands. Build
         // one shared set so the board highlights any community card used by
@@ -164,16 +163,13 @@ function renderTableUI(){
         if(startBtn){
             const canDeal=gameState.status!=='in-progress';
             // Deal Hand is a host-only control and lives beside the action area.
-            // resetBtn.classList.toggle('hidden',!gameState.isHost);
             startBtn.disabled=!gameState.isHost||!canDeal;
             startBtn.title=t('dealHand');
         }
 
         const resetBtn=document.getElementById('resetTableBtn');
         if(resetBtn){
-            // Reset Table is a host-only control and lives beside the title area.
-            // resetBtn.classList.toggle('hidden',!gameState.isHost);
-            resetBtn.disabled=!gameState.isHost;
+            resetBtn.classList.toggle('hidden',!gameState.isHost);
             resetBtn.title=t('resetTable');
         }
         
@@ -200,54 +196,3 @@ function renderTableUI(){
     }catch(e){logMessage(`Render error: ${e.message}`,'error');}
 }
 
-/* Unified Custom Modal Controller */
-const appModal = document.getElementById('appModal');
-const modalTitle = document.getElementById('modalTitle');
-const modalBody = document.getElementById('modalBody');
-const modalFooter = document.getElementById('modalFooter');
-
-function showModal(title, htmlContent, buttonsConfig) {
-  modalTitle.textContent = title;
-  modalBody.innerHTML = htmlContent;
-  modalFooter.innerHTML = '';
-  
-  buttonsConfig.forEach(cfg => {
-    const btn = document.createElement('button');
-    btn.textContent = cfg.text;
-    
-    // let baseClasses = "px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 cursor-pointer text-white";
-    let baseClasses = "px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow transition shrink-0";
-    
-    if (cfg.bg && cfg.bg.startsWith('#')) {
-      btn.className = baseClasses;
-      btn.style.backgroundColor = cfg.bg;
-    } else {
-      const customBg = cfg.bg || 'bg-slate-700 hover:bg-slate-600';
-      btn.className = `${baseClasses} ${customBg}`;
-    }
-    
-    btn.onclick = async () => {
-      const allButtons = modalFooter.querySelectorAll('button');
-      allButtons.forEach(b => {
-        b.disabled = true;
-        b.classList.add('opacity-40', 'cursor-not-allowed');
-      });
-      
-      if (cfg.onClick) await cfg.onClick();
-      if (cfg.close !== false) closeModal();
-    };
-    modalFooter.appendChild(btn);
-  });
-  
-  appModal.classList.remove('hidden');
-  appModal.classList.add('flex');
-}
-
-function closeModal() {
-  appModal.classList.remove('flex');
-  appModal.classList.add('hidden');
-}
-
-function showAlert(title, message) {
-  showModal(title, message, [{ text: 'OK', bg: 'bg-blue-600 hover:bg-blue-500' }]);
-}

@@ -1,8 +1,14 @@
-/* Optional WebRTC ICE/TURN configuration.
-   Copy to network-config.js and put your real TURN credentials here.
-   STUN alone is not sufficient for every NAT/firewall combination. */
+/* Deployment override. Leave the array empty to use the built-in public STUN servers.
+   For reliable cross-network WebRTC, configure a real TURN server here. */
+window.P2P_ICE_SERVERS = [];
 
-// Example:
+/* ============ Example ============ */
+/* Optional WebRTC ICE/TURN configuration.
+   Copy this file to network-config.js and put your real TURN credentials
+   there. STUN alone is not sufficient for every NAT/firewall combination
+   -- peers behind restrictive/symmetric NATs will fail to connect without
+   a real TURN server. */
+
 // window.P2P_ICE_SERVERS = [
 //     { urls: 'stun:stun.l.google.com:19302' },
 //     {
@@ -12,6 +18,6 @@
 //     }
 // ];
 
-/* Deployment override. Leave the array empty to use the built-in public STUN servers.
-   For reliable cross-network WebRTC, configure a real TURN server here. */
-window.P2P_ICE_SERVERS = [];
+/* Do not commit real TURN credentials to a public repository. For
+   production, generate short-lived credentials server-side when possible
+   (most TURN providers support this). */
