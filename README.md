@@ -6,7 +6,7 @@ authoritative source of truth for the game state), every other browser
 connects to it directly over WebRTC via [PeerJS](https://peerjs.com/), and
 the whole thing runs from plain static files.
 
-Currently playable: **Poker** (Texas Hold'em and 5-Card Draw). Chess, 
+Currently playable: **Poker** (Texas Hold'em and 5-Card Draw) and **Chess**. 
 Othello and Naval Battle are stubbed in the game picker as "coming soon."
 
 ## Running it

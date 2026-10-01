@@ -1,0 +1,73 @@
+<!-- ==========================================================
+     CHESS MODULE MARKUP. Loaded on demand by core/game-registry.js
+     (loadGame('chess')). Each <template data-slot="..."> is moved into
+     the matching [data-mount="..."] element of the core shell:
+       overlay        -> full-screen extra screens (table configuration)
+       headerActions  -> extra buttons in the game header
+       board          -> the game board itself (inside <main>)
+     ========================================================== -->
+<template data-slot="board">
+          <!-- CHESS BOARD (hidden when gameState.gameId !== 'chess', see renderTableUI() in ui.js) -->
+          <div id="chessBoardSection" data-game-board="chess" class="hidden w-full max-w-2xl mx-auto flex-1 flex flex-col items-center justify-center gap-2 my-auto">
+
+              <!-- Opponent info bar -->
+              <div id="chessTopBar" class="w-full max-w-md flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div class="flex items-center gap-2 min-w-0">
+                      <img id="chessTopAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=opponent" class="w-8 h-8 rounded-full border border-slate-700 shrink-0" alt="">
+                      <div class="min-w-0">
+                          <div id="chessTopName" class="text-xs font-extrabold text-white truncate">—</div>
+                          <div id="chessTopCaptured" class="text-sm leading-none tracking-tight"></div>
+                      </div>
+                  </div>
+                  <span id="chessTopClockDot" class="w-2.5 h-2.5 rounded-full bg-slate-700 shrink-0"></span>
+              </div>
+
+              <!-- Board -->
+              <div class="relative">
+                  <div id="chessBoard" class="chess-board"></div>
+              </div>
+
+              <!-- Local player info bar -->
+              <div id="chessBottomBar" class="w-full max-w-md flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div class="flex items-center gap-2 min-w-0">
+                      <img id="chessBottomAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=you" class="w-8 h-8 rounded-full border border-slate-700 shrink-0" alt="">
+                      <div class="min-w-0">
+                          <div id="chessBottomName" class="text-xs font-extrabold text-white truncate">—</div>
+                          <div id="chessBottomCaptured" class="text-sm leading-none tracking-tight"></div>
+                      </div>
+                  </div>
+                  <span id="chessBottomClockDot" class="w-2.5 h-2.5 rounded-full bg-slate-700 shrink-0"></span>
+              </div>
+
+              <!-- Status line -->
+              <div id="chessPhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-amber-300 text-center">Lobby Waiting</div>
+              <div id="chessStatusSummary" class="text-xs sm:text-sm font-bold text-slate-300 px-2 text-center truncate max-w-full">Waiting for players...</div>
+
+              <!-- Move list -->
+              <div id="chessMoveListWrap" class="hidden w-full max-w-md">
+                  <div id="chessMoveList" class="code-font text-[11px] text-slate-400 bg-slate-900/70 border border-slate-800 rounded-xl p-2 max-h-20 overflow-y-auto leading-relaxed"></div>
+              </div>
+
+              <!-- Bottom controls -->
+              <div class="w-full max-w-md mt-1 shrink-0">
+                  <div class="bg-slate-900/90 border border-slate-800 p-2 rounded-2xl flex items-center justify-between gap-2 backdrop-blur-md">
+                      <button id="startChessBtn" disabled class="items-center px-3.5 sm:px-5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
+                          <i class="fa-solid fa-chess"></i> <span data-i18n="startMatch">Start Match</span>
+                      </button>
+                      <div class="flex items-center gap-1.5 sm:gap-2">
+                          <button id="flipBoardBtn" title="Flip board" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-extrabold transition">
+                              <i class="fa-solid fa-arrows-rotate"></i>
+                          </button>
+                          <button id="offerDrawBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="offerDraw">
+                              Offer Draw
+                          </button>
+                          <button id="resignBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 text-xs font-extrabold transition" data-i18n="resign">
+                              Resign
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <!-- /CHESS BOARD -->
+</template>
+

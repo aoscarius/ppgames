@@ -66,7 +66,17 @@ const GAME_REGISTRY = {
         markup:'js/games/poker/board.html',
         locale:'js/games/poker/locale.js'
     },
-    chess:  { id:'chess',   nameKey:'chessGame',   descKey:'chessDescription',   icon:'♟', implemented:false, minPlayers:2, maxPlayers:2 },
+    chess: {
+        id:'chess', nameKey:'chessGame', descKey:'chessDescription', roomKey:'chessRoom',
+        icon:'♟', accentBg:'bg-amber-600', implemented:true, minPlayers:2, maxPlayers:2,
+        cardClass:'border-amber-500/60 bg-amber-950/20 hover:bg-amber-950/40',
+        badgeClass:'text-amber-400',
+        scripts:['js/games/chess/engine.js','js/games/chess/logic.js','js/games/chess/net.js',
+                 'js/games/chess/ui.js','js/games/chess/game.js'],
+        styles:['css/games/chess.css'],
+        markup:'js/games/chess/board.html',
+        locale:'js/games/chess/locale.js'
+    },
     othello:{ id:'othello', nameKey:'othelloGame', descKey:'othelloDescription', icon:'⚫', implemented:false, minPlayers:2, maxPlayers:2 },
     naval:  { id:'naval',   nameKey:'navalGame',   descKey:'navalDescription',   icon:'⚓', implemented:false, minPlayers:2, maxPlayers:2 }
 };
