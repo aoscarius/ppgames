@@ -119,7 +119,7 @@ function renderChessUI(){
             const square=chessSquareAt(r,c,flipped);
             const {file,rank}=chessSquareToRC(square);
             const piece=board[8-rank][file];
-            const light=(file+rank)%2===1;
+            const light=(file+rank)%2===0;
             el.dataset.square=square;
             el.className='chess-square '+(light?'chess-square-light':'chess-square-dark');
             if(lastMove&&(lastMove.from===square||lastMove.to===square))el.classList.add('chess-square-lastmove');
@@ -128,6 +128,8 @@ function renderChessUI(){
             let inner='';
             if(piece)inner+=`<span class="chess-piece ${piece.color==='w'?'chess-piece-white':'chess-piece-black'}">${CHESS_PIECE_GLYPHS[piece.color][piece.type]}</span>`;
             if(chessLegalTargets.includes(square))inner+=`<span class="chess-move-dot ${piece?'chess-move-dot-capture':''}"></span>`;
+            if(c===0)inner+=`<span class="chess-coord chess-coord-number">${square.charAt(1)}</span>`;
+            if(r===7)inner+=`<span class="chess-coord chess-coord-letter">${square.charAt(0)}</span>`;
             el.innerHTML=inner;
         });
 

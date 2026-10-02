@@ -26,8 +26,20 @@
     font-size: clamp(20px, 6.5vw, 34px);
     line-height: 1;
 }
+.chess-coord {
+    position: absolute;
+    font-size: 11px;
+    font-weight: bold;
+    user-select: none;
+    pointer-events: none;
+    z-index: 1;
+}
+.chess-coord-number { top: 2px; left: 4px; }
+.chess-coord-letter { bottom: 2px; right: 4px; }
 .chess-square-light { background: #ebd9b4; }
+.chess-square-light .chess-coord { color: #8a5a3b; }
 .chess-square-dark { background: #8a5a3b; }
+.chess-square-dark .chess-coord { color: #ebd9b4; }
 .chess-square-lastmove::before {
     content: '';
     position: absolute; inset: 0;
