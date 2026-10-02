@@ -1,0 +1,56 @@
+<!-- ==========================================================
+     OTHELLO MODULE MARKUP. Loaded on demand by core/game-registry.js
+     (loadGame('othello')). Each <template data-slot="..."> is moved into
+     the matching [data-mount="..."] element of the core shell.
+     ========================================================== -->
+
+<template data-slot="board">
+          <div id="othelloBoardSection" data-game-board="othello" class="hidden w-full max-w-2xl mx-auto flex-1 flex flex-col items-center justify-center gap-2 my-auto">
+
+              <div id="othelloTopBar" class="w-full max-w-md flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div class="flex items-center gap-2 min-w-0">
+                      <img id="othelloTopAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=opponent" class="w-8 h-8 rounded-full border border-slate-700 shrink-0" alt="">
+                      <div class="min-w-0">
+                          <div id="othelloTopName" class="text-xs font-extrabold text-white truncate">—</div>
+                      </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                      <span class="othello-disc othello-disc-white othello-count-disc"></span>
+                      <span id="othelloTopCount" class="text-sm font-black text-white w-5 text-center"></span>
+                      <span id="othelloTopClockDot" class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                  </div>
+              </div>
+
+              <div class="relative">
+                  <div id="othelloBoard" class="othello-board"></div>
+              </div>
+
+              <div id="othelloBottomBar" class="w-full max-w-md flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div class="flex items-center gap-2 min-w-0">
+                      <img id="othelloBottomAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=you" class="w-8 h-8 rounded-full border border-slate-700 shrink-0" alt="">
+                      <div class="min-w-0">
+                          <div id="othelloBottomName" class="text-xs font-extrabold text-white truncate">—</div>
+                      </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                      <span class="othello-disc othello-disc-black othello-count-disc"></span>
+                      <span id="othelloBottomCount" class="text-sm font-black text-white w-5 text-center"></span>
+                      <span id="othelloBottomClockDot" class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                  </div>
+              </div>
+
+              <div id="othelloPhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-emerald-300 text-center">Lobby Waiting</div>
+              <div id="othelloStatusSummary" class="text-xs sm:text-sm font-bold text-slate-300 px-2 text-center truncate max-w-full">Waiting for players...</div>
+
+              <div class="w-full max-w-md mt-1 shrink-0">
+                  <div class="bg-slate-900/90 border border-slate-800 p-2 rounded-2xl flex items-center justify-between gap-2 backdrop-blur-md">
+                      <button id="startOthelloBtn" disabled class="items-center px-3.5 sm:px-5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
+                          <i class="fa-solid fa-circle"></i> <span data-i18n="startMatch">Start Match</span>
+                      </button>
+                      <button id="othelloResignBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 text-xs font-extrabold transition" data-i18n="resign">
+                          Resign
+                      </button>
+                  </div>
+              </div>
+          </div>
+</template>

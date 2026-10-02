@@ -77,7 +77,16 @@ const GAME_REGISTRY = {
         markup:'js/games/chess/board.html',
         locale:'js/games/chess/locale.js'
     },
-    othello:{ id:'othello', nameKey:'othelloGame', descKey:'othelloDescription', icon:'⚫', implemented:false, minPlayers:2, maxPlayers:2 },
+    othello: {
+        id:'othello', nameKey:'othelloGame', descKey:'othelloDescription', roomKey:'othelloRoom',
+        icon:'⚫', accentBg:'bg-teal-600', implemented:true, minPlayers:2, maxPlayers:2,
+        cardClass:'border-teal-500/60 bg-teal-950/20 hover:bg-teal-950/40',
+        badgeClass:'text-teal-400',
+        scripts:['js/games/othello/logic.js','js/games/othello/net.js','js/games/othello/ui.js','js/games/othello/game.js'],
+        styles:['css/games/othello.css'],
+        markup:'js/games/othello/board.html',
+        locale:'js/games/othello/locale.js'
+    },
     naval:  { id:'naval',   nameKey:'navalGame',   descKey:'navalDescription',   icon:'⚓', implemented:false, minPlayers:2, maxPlayers:2 }
 };
 function getGameDefinition(id){ return GAME_REGISTRY[id] || GAME_REGISTRY.poker; }

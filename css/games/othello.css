@@ -1,0 +1,50 @@
+/* --- Othello board --- */
+.othello-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: min(88vw, 420px);
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0f5132;
+    border: 6px solid #0a3621;
+    box-shadow: 0 14px 34px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.4);
+}
+@media (min-width: 640px) {
+    .othello-board { width: min(60vw, 480px); border-width: 8px; }
+}
+.othello-square {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0,0,0,.25);
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+}
+.othello-last-move { background: rgba(250, 204, 21, .22); }
+/* .othello-legal-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+} */
+.othello-legal-hint::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 22%; height: 22%;
+    border-radius: 999px;
+    background: rgba(255,255,255,.28);
+}
+.othello-disc {
+    width: 82%; height: 82%;
+    border-radius: 999px;
+    box-shadow: 0 2px 3px rgba(0,0,0,.4);
+    transition: background-color .15s ease;
+}
+.othello-disc-black { background: radial-gradient(circle at 35% 30%, #4b5563, #0b0f16 70%); }
+.othello-disc-white { background: radial-gradient(circle at 35% 30%, #ffffff, #cbd5e1 70%); }
+.othello-count-disc { width: 14px; height: 14px; box-shadow: none; }

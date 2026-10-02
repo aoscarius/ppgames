@@ -1,2 +1,6 @@
 # Local only works dirs
+.vscode
 .trash
+node_modules
+# Local only files
+package*.json
