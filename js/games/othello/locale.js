@@ -17,7 +17,9 @@ registerLocale({
         confirmResign: 'Are you sure you want to resign this match?',
         rematch: 'Rematch',
         resign: 'Resign',
-        startMatch: 'Start Match'
+        startMatch: 'Start Match',
+        illegalMove: 'That move is not legal.',
+        needTwoPlayers: 'Need two seated players to start.'
     },
     it: {
         othelloRoom: 'Stanza Othello',
@@ -30,6 +32,8 @@ registerLocale({
         confirmResign: 'Sei sicuro di voler abbandonare questa partita?',
         rematch: 'Rivincita',
         resign: 'Abbandona',
-        startMatch: 'Inizia Partita'
+        startMatch: 'Inizia Partita',
+        illegalMove: 'Mossa non legale.',
+        needTwoPlayers: 'Servono due giocatori seduti per iniziare.'
     }
 });

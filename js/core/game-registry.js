@@ -87,7 +87,16 @@ const GAME_REGISTRY = {
         markup:'js/games/othello/board.html',
         locale:'js/games/othello/locale.js'
     },
-    naval:  { id:'naval',   nameKey:'navalGame',   descKey:'navalDescription',   icon:'⚓', implemented:false, minPlayers:2, maxPlayers:2 }
+    naval: {
+        id:'naval', nameKey:'navalGame', descKey:'navalDescription', roomKey:'navalRoom',
+        icon:'⚓', accentBg:'bg-sky-600', implemented:true, minPlayers:2, maxPlayers:2,
+        cardClass:'border-sky-500/60 bg-sky-950/20 hover:bg-sky-950/40',
+        badgeClass:'text-sky-400',
+        scripts:['js/games/naval/logic.js','js/games/naval/net.js','js/games/naval/ui.js','js/games/naval/game.js'],
+        styles:['css/games/naval.css'],
+        markup:'js/games/naval/board.html',
+        locale:'js/games/naval/locale.js'
+    }
 };
 function getGameDefinition(id){ return GAME_REGISTRY[id] || GAME_REGISTRY.poker; }
 

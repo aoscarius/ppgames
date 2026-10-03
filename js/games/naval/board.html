@@ -1,0 +1,86 @@
+<!-- ==========================================================
+     NAVAL BATTLE MODULE MARKUP. Loaded on demand by core/game-registry.js
+     (loadGame('naval')). Each <template data-slot="..."> is moved into
+     the matching [data-mount="..."] element of the core shell.
+     ========================================================== -->
+
+<template data-slot="board">
+          <div id="navalBoardSection" data-game-board="naval" class="hidden w-full max-w-2xl mx-auto flex-1 flex flex-col items-center justify-center gap-2 my-auto">
+
+              <!-- Opponent bar -->
+              <div id="navalTopBar" class="w-full max-w-md flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div class="flex items-center gap-2 min-w-0">
+                      <img id="navalTopAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=opponent" class="w-8 h-8 rounded-full border border-slate-700 shrink-0" alt="">
+                      <div class="min-w-0">
+                          <div id="navalTopName" class="text-xs font-extrabold text-white truncate">—</div>
+                      </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-sky-400 text-xs">⚓</span>
+                      <span id="navalTopCount" class="text-sm font-black text-white w-5 text-center"></span>
+                      <span id="navalTopClockDot" class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                  </div>
+              </div>
+
+              <!-- Grids: enemy waters (fire here) + own fleet (deploy here) -->
+              <div id="navalGrids" class="hidden w-full flex flex-col md:flex-row items-center md:items-start justify-center gap-3">
+                  <div id="navalEnemyWrap" class="flex flex-col items-center gap-1">
+                      <div class="text-[10px] font-black uppercase tracking-[0.18em] text-sky-300" data-i18n="navalEnemyWaters">Enemy waters</div>
+                      <div id="navalEnemyGrid" class="naval-grid"></div>
+                  </div>
+                  <div id="navalOwnWrap" class="flex flex-col items-center gap-1">
+                      <div class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-300" data-i18n="navalYourFleet">Your fleet</div>
+                      <div id="navalOwnGrid" class="naval-grid"></div>
+                  </div>
+              </div>
+
+              <!-- Deployment tray (only while this player is placing ships) -->
+              <div id="navalPlacePanel" class="hidden w-full max-w-md bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl space-y-2">
+                  <div id="navalShipTray" class="flex flex-wrap gap-1.5 justify-center"></div>
+                  <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                      <button id="navalRotateBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition">
+                          <i class="fa-solid fa-rotate"></i> <span data-i18n="navalRotate">Rotate</span> <span id="navalOrientLabel" class="text-slate-400 font-semibold"></span>
+                      </button>
+                      <button id="navalRandomBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition">
+                          <i class="fa-solid fa-shuffle"></i> <span data-i18n="navalRandom">Random</span>
+                      </button>
+                      <button id="navalClearBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition">
+                          <i class="fa-solid fa-eraser"></i> <span data-i18n="navalClear">Clear</span>
+                      </button>
+                      <button id="navalReadyBtn" type="button" disabled class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
+                          <i class="fa-solid fa-check"></i> <span data-i18n="navalReady">Ready</span>
+                      </button>
+                  </div>
+              </div>
+
+              <!-- Player bar -->
+              <div id="navalBottomBar" class="w-full max-w-md flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div class="flex items-center gap-2 min-w-0">
+                      <img id="navalBottomAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=you" class="w-8 h-8 rounded-full border border-slate-700 shrink-0" alt="">
+                      <div class="min-w-0">
+                          <div id="navalBottomName" class="text-xs font-extrabold text-white truncate">—</div>
+                      </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-sky-400 text-xs">⚓</span>
+                      <span id="navalBottomCount" class="text-sm font-black text-white w-5 text-center"></span>
+                      <span id="navalBottomClockDot" class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                  </div>
+              </div>
+
+              <div id="navalPhaseText" class="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-sky-300 text-center">Lobby Waiting</div>
+              <div id="navalStatusSummary" class="text-xs sm:text-sm font-bold text-slate-300 px-2 text-center max-w-full">Waiting for players...</div>
+              <div id="navalLastShotText" class="text-[11px] text-slate-400 px-2 text-center min-h-[1em]"></div>
+
+              <div class="w-full max-w-md mt-1 shrink-0">
+                  <div class="bg-slate-900/90 border border-slate-800 p-2 rounded-2xl flex items-center justify-between gap-2 backdrop-blur-md">
+                      <button id="startNavalBtn" disabled class="items-center px-3.5 sm:px-5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
+                          <i class="fa-solid fa-anchor"></i> <span data-i18n="navalStart">Start Match</span>
+                      </button>
+                      <button id="navalResignBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 text-xs font-extrabold transition" data-i18n="navalResign">
+                          Resign
+                      </button>
+                  </div>
+              </div>
+          </div>
+</template>
