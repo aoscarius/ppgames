@@ -72,6 +72,7 @@ function setupEventListeners(){
     // Welcome screen: live-update the avatar preview as the user types.
     const input=document.getElementById('usernameInput'),avatar=document.getElementById('welcomeAvatarPreview');
     input.addEventListener('input',e=>avatar.src=`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(e.target.value.trim()||'Gamer')}`);
+    input.addEventListener('focus', e=>e.target.select());
 
     // Room ids are self-describing (see generateId() in core/utils.js:
     // "ppg<gameId>-xxxxx"), so an invite link (?room=<id>) already carries
@@ -85,7 +86,7 @@ function setupEventListeners(){
         if(!roomId||!GAME_REGISTRY[gameId]?.implemented)return false;
         gameState.gameId=gameId;
         gameState.gameName=selectedGameLabel(gameId);
-        joinAsClient(roomId,gameId,input.value.trim()||'Player').catch(e=>{
+        joinAsClient(roomId,gameId,input.value.trim()||'Gamer').catch(e=>{
             logMessage(`Could not join: ${e.message}`,'error');
             showAlert('Loading failed','Could not load the game files. Check your connection and try again.');
         });
@@ -94,7 +95,7 @@ function setupEventListeners(){
 
     const enterGameSelection=(hostMode,gameId=null,roomId=room)=>{
         gameState.isHost=hostMode;
-        gameState.myPlayerName=input.value.trim()||'Player';
+        gameState.myPlayerName=input.value.trim()||'Gamer';
         gameState.gameId=gameId||'poker';
         gameState.gameName=selectedGameLabel(gameState.gameId);
 

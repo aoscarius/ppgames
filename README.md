@@ -7,7 +7,8 @@ connects to it directly over WebRTC via [PeerJS](https://peerjs.com/), and
 the whole thing runs from plain static files.
 
 Currently playable: **Poker** (Texas Hold'em and 5-Card Draw), **Chess**,
-**Othello** and **Naval Battle**.
+**Othello**, **Naval Battle** and **Monopolio** (2-6 players, with mortgages,
+houses/hotels and player-to-player trading; no auctions).
 
 ## Running it
 

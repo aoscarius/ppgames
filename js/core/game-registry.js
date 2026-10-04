@@ -96,6 +96,17 @@ const GAME_REGISTRY = {
         styles:['css/games/naval.css'],
         markup:'js/games/naval/board.html',
         locale:'js/games/naval/locale.js'
+    },
+    monopolio: {
+        id:'monopolio', nameKey:'monopolioGame', descKey:'monopolioDescription', roomKey:'monopolioRoom',
+        icon:'🎩', accentBg:'bg-rose-600', implemented:true, minPlayers:2, maxPlayers:6,
+        cardClass:'border-rose-500/60 bg-rose-950/20 hover:bg-rose-950/40',
+        badgeClass:'text-rose-400',
+        scripts:['js/games/monopolio/data.js','js/games/monopolio/logic.js','js/games/monopolio/net.js',
+                 'js/games/monopolio/ui.js','js/games/monopolio/game.js'],
+        styles:['css/games/monopolio.css'],
+        markup:'js/games/monopolio/board.html',
+        locale:'js/games/monopolio/locale.js'
     }
 };
 function getGameDefinition(id){ return GAME_REGISTRY[id] || GAME_REGISTRY.poker; }
@@ -103,16 +114,18 @@ function getGameDefinition(id){ return GAME_REGISTRY[id] || GAME_REGISTRY.poker;
 /* ------ games selection locale ------ */
 registerLocale({
     en: {
-        pokerGame: 'Poker', pokerDescription: 'Texas Hold\'em & 5-Card Draw',
-        chessGame: 'Chess', chessDescription: 'Two-player chess',
-        othelloGame: 'Othello', othelloDescription: 'Classic reversi',
-        navalGame: 'Naval Battle', navalDescription: 'Fleet strategy',
+        pokerGame: 'Poker', pokerDescription: 'Texas Hold\'em & 5-Card Draw. Bluff your way to the pot',
+        chessGame: 'Chess', chessDescription: 'The classic duel of strategy, head to head or against a bot',
+        othelloGame: 'Othello', othelloDescription: 'Flip your opponent\'s discs and take the whole board',
+        navalGame: 'Naval Battle', navalDescription: 'Hide your fleet, hunt theirs. Sink every ship first',
+        monopolioGame: 'Monopolio', monopolioDescription: 'Buy, build and trade your way to a fortune',
     },
     it: {
-        pokerGame: 'Poker', pokerDescription: 'Texas Hold\'em e 5-Card Draw',
-        chessGame: 'Scacchi', chessDescription: 'Scacchi per due',
-        othelloGame: 'Othello', othelloDescription: 'Reversi classico',
-        navalGame: 'Battaglia Navale', navalDescription: 'Strategia navale',
+        pokerGame: 'Poker', pokerDescription: 'Texas Hold\'em e 5-Card Draw. Bluffa e vinci il piatto',
+        chessGame: 'Scacchi', chessDescription: 'Il classico duello di strategia, testa a testa o contro il bot',
+        othelloGame: 'Othello', othelloDescription: 'Ribalta le pedine avversarie e conquista la scacchiera',
+        navalGame: 'Battaglia Navale', navalDescription: 'Nascondi la flotta, caccia quella avversaria. Affonda tutto per primo',
+        monopolioGame: 'Monopolio', monopolioDescription: 'Compra, costruisci e scambia fino a fare fortuna',
     }
 });
 
