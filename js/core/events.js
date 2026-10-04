@@ -26,7 +26,7 @@ function* proceduralNameGenerator() {
 // enter the game screen. Called by the core (games without a setup step)
 // or by a game's own setup screen once the host confirmed (poker config).
 function createRoomNow(){
-    const name=document.getElementById('usernameInput').value.trim()||'Player';
+    const name=document.getElementById('usernameInput').value.trim()||'Gamer';
     initHostLocally(name);
     initPeerNetwork();
     showScreen('gameScreen');
@@ -53,7 +53,7 @@ async function continueToGame(){
         if(!gameState.isHost){
             const r=new URLSearchParams(location.search).get('room');
             if(!r)return showScreen('welcomeScreen');
-            await joinAsClient(r,gameState.gameId,document.getElementById('usernameInput').value.trim()||'Player');
+            await joinAsClient(r,gameState.gameId,document.getElementById('usernameInput').value.trim()||'Gamer');
             return;
         }
         const game=await loadGame(gameState.gameId);
@@ -71,7 +71,7 @@ async function continueToGame(){
 function setupEventListeners(){
     // Welcome screen: live-update the avatar preview as the user types.
     const input=document.getElementById('usernameInput'),avatar=document.getElementById('welcomeAvatarPreview');
-    input.addEventListener('input',e=>avatar.src=`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(e.target.value.trim()||'Player')}`);
+    input.addEventListener('input',e=>avatar.src=`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(e.target.value.trim()||'Gamer')}`);
 
     // Room ids are self-describing (see generateId() in core/utils.js:
     // "ppg<gameId>-xxxxx"), so an invite link (?room=<id>) already carries
@@ -247,4 +247,8 @@ window.addEventListener('DOMContentLoaded',()=>{
     updateStaticTranslations();
     showScreen('welcomeScreen');
     logMessage('P2P Game Engine initialized.','success');
+    // Initialize user name with random name
+    const input=document.getElementById('usernameInput'),avatar=document.getElementById('welcomeAvatarPreview');
+    input.value=proceduralNameGenerator().next().value;
+    avatar.src=`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(input.value.trim()||'Gamer')}`;
 });
