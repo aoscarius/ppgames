@@ -27,6 +27,9 @@ function charge(state,p,amount){
     const a=Math.max(0,Math.min(amount,p.chips));
     p.chips-=a;
     p.currentBet+=a;
+    // currentBet is reset every street; `contributed` is the player's total
+    // for the whole hand and is what side pots are built from (buildPots()).
+    p.contributed=(p.contributed||0)+a;
     state.pot+=a;
     if(p.chips===0) p.allIn=true;
     return a;
@@ -54,7 +57,34 @@ function awardSingle(state,winner){
     winner.chips+=state.pot; winner.lastAction=`Won ${money(state,state.pot)} (all opponents folded)`;
     state.showdownSummary = t('winnerFoldedLabel', { name: winner.name });
     appendChatMessage('System', state.showdownSummary, true);
+    state.winnerIds=[winner.id]; state.sidePots=[]; state.runout=false;
     state.pot=0; state.status='hand-ended'; state.stage='ended'; state.phase='SHOWDOWN'; state.activeTurnSeat=-1;
+}
+
+// Split the pot into the main pot and side pots from what each player put in
+// over the whole hand (`contributed`, see charge()).
+//
+// Each distinct contribution level closes one pot: a short all-in player can
+// only win, from every opponent, as much as they themselves put in; whatever
+// the others staked above that goes into the next pot, which the short stack
+// is not part of. A pot that only one player is eligible for is simply that
+// player's own uncalled chips coming back to them.
+//
+// Folded players' chips stay in the pots they paid into (dead money) but they
+// can never win them. Returns [{amount, eligible:[playerId]}], lowest level first.
+function buildPots(state){
+    const paid=state.players.filter(p=>p&&(p.contributed||0)>0);
+    const levels=[...new Set(paid.map(p=>p.contributed))].sort((a,b)=>a-b);
+    const pots=[]; let prev=0;
+    for(const lvl of levels){
+        let amount=0;
+        paid.forEach(p=>{amount+=Math.max(0,Math.min(p.contributed,lvl)-prev);});
+        prev=lvl;
+        const eligible=paid.filter(p=>!p.folded&&!p.out&&p.contributed>=lvl).map(p=>p.id);
+        if(!eligible.length&&pots.length){pots[pots.length-1].amount+=amount;continue;}   // nobody left to win it: merge downwards
+        pots.push({amount,eligible});
+    }
+    return pots;
 }
 
 // End the hand at showdown: evaluate every remaining (non-folded) player's
@@ -71,24 +101,55 @@ function resolveShowdown(state){
     if(live.length===1){awardSingle(state,live[0]);return;}
     const results=live.map(p=>({p,e:evaluate([...p.cards,...state.communityCards])}));
     results.forEach(x=>x.p.evalResult=x.e);
-    const best=Math.max(...results.map(x=>x.e.score)), winners=results.filter(x=>x.e.score===best).map(x=>x.p);
-    const share=Math.floor(state.pot/winners.length), remainder=state.pot-share*winners.length;
-    
-    winners.forEach((w,i)=>{
-        const wonAmount = share + (i===0?remainder:0);
-        w.chips += wonAmount;
-        w.lastAction = `Won ${money(state,wonAmount)} (${localizedHandType(w.evalResult.typeName)})`;
+
+    // One pot per contribution level (see buildPots). If the per-player
+    // bookkeeping ever doesn't add up to the pot (e.g. a state restored from a
+    // snapshot that predates it), fall back to a single pot for everyone live.
+    let pots=buildPots(state);
+    const potted=pots.reduce((n,x)=>n+x.amount,0);
+    // Chips of a seat that no longer exists (bot removed / old host dropped mid-hand)
+    // are dead money: they go to the main pot.
+    if(pots.length&&state.pot>potted)pots[0].amount+=state.pot-potted;
+    else if(!pots.length||potted!==state.pot)pots=[{amount:state.pot,eligible:live.map(p=>p.id)}];
+
+    const won=new Map();                       // playerId -> total chips won this hand
+    const winnerIds=[];                        // everyone who won a contested pot
+    const settled=pots.map(pot=>{
+        const cands=results.filter(x=>pot.eligible.includes(x.p.id));
+        const best=Math.max(...cands.map(x=>x.e.score));
+        const winners=cands.filter(x=>x.e.score===best).map(x=>x.p);
+        const share=Math.floor(pot.amount/winners.length), remainder=pot.amount-share*winners.length;
+        winners.forEach((w,i)=>{
+            const amount=share+(i===0?remainder:0);
+            w.chips+=amount;
+            won.set(w.id,(won.get(w.id)||0)+amount);
+        });
+        // a pot only one player could claim is their own uncalled chips coming back, not a win
+        if(cands.length>1||pots.length===1)winners.forEach(w=>{if(!winnerIds.includes(w.id))winnerIds.push(w.id);});
+        return {amount:pot.amount,winners,hand:localizedHandType(winners[0].evalResult.typeName),contested:cands.length>1};
     });
 
-    const handName = localizedHandType(winners[0].evalResult.typeName);
-    if(winners.length === 1) {
-        state.showdownSummary = t('winnerLabel', { name: winners[0].name, hand: handName });
-    } else {
-        const names = winners.map(w => w.name).join(', ');
-        state.showdownSummary = t('winnersLabel', { names, hand: handName });
-    }
-    appendChatMessage('System', state.showdownSummary, true);
+    results.forEach(x=>{
+        const total=won.get(x.p.id);
+        if(total)x.p.lastAction=`Won ${money(state,total)} (${localizedHandType(x.p.evalResult.typeName)})`;
+    });
 
+    // The summary names the winner(s) of the main pot; every further pot gets its own chat line.
+    const main=settled[0];
+    state.showdownSummary = main.winners.length===1
+        ? t('winnerLabel',{name:main.winners[0].name,hand:main.hand})
+        : t('winnersLabel',{names:main.winners.map(w=>w.name).join(', '),hand:main.hand});
+    appendChatMessage('System', state.showdownSummary, true);
+    settled.slice(1).forEach(s=>{
+        const names=s.winners.map(w=>w.name).join(', ');
+        appendChatMessage('System',s.contested
+            ? t('sidePotWon',{names,amount:money(state,s.amount),hand:s.hand})
+            : t('uncalledReturned',{name:names,amount:money(state,s.amount)}),true);
+    });
+
+    state.winnerIds=winnerIds;
+    state.sidePots=settled.map(s=>({amount:s.amount,winnerIds:s.winners.map(w=>w.id),contested:s.contested}));
+    state.runout=false;
     state.pot=0; state.status='hand-ended'; state.stage='ended'; state.phase='SHOWDOWN'; state.activeTurnSeat=-1;
 }
 
@@ -105,6 +166,15 @@ function resolveShowdown(state){
 function advanceStage(state){
     if(state.variant==='holdem'){
         resetBetRound(state);
+        // Nobody -- or only one player, with everyone else all-in -- can bet any
+        // more, so there's nothing left to decide. Rather than dealing the rest
+        // of the board in one go, switch to a timed "runout": the hole cards are
+        // turned face up and the host deals one street at a time with a pause in
+        // between (runoutStep() below, paced by scheduleRunout() in net.js).
+        if(liveUnfolded(state).filter(eligibleToAct).length<=1){
+            state.runout=true; state.runoutStep=0; state.activeTurnSeat=-1;
+            return;
+        }
         if(state.stage==='preflop'){state.stage='flop';state.phase='FLOP';state.communityCards.push(...state.deck.splice(0,3));}
         else if(state.stage==='flop'){state.stage='turn';state.phase='TURN';state.communityCards.push(state.deck.shift());}
         else if(state.stage==='turn'){state.stage='river';state.phase='RIVER';state.communityCards.push(state.deck.shift());}
@@ -115,9 +185,46 @@ function advanceStage(state){
     }
     state.activeTurnSeat=nextSeat(state,state.dealerSeat);
     if(state.activeTurnSeat<0){
-        if(state.variant==='holdem' && state.stage!=='river'){ advanceStage(state); return; }
+        if(state.variant==='holdem'){state.runout=true;state.runoutStep=0;return;}   // defensive: same as above
         resolveShowdown(state);
     }
+}
+
+// One timed step of the runout: deal the next street, or -- once the river
+// is down -- go to showdown. Host only; called by the timer in net.js.
+function runoutStep(state){
+    if(!state.runout||state.status!=='in-progress')return;
+    state.runoutStep=(state.runoutStep||0)+1;
+    if(state.stage==='preflop'){state.stage='flop';state.phase='FLOP';state.communityCards.push(...state.deck.splice(0,3));}
+    else if(state.stage==='flop'){state.stage='turn';state.phase='TURN';state.communityCards.push(state.deck.shift());}
+    else if(state.stage==='turn'){state.stage='river';state.phase='RIVER';state.communityCards.push(state.deck.shift());}
+    else resolveShowdown(state);   // the river is already on the table
+}
+
+// A seated player left (disconnected / bot removed) while the hand was running.
+// Folded players are skipped by nextSeat(), so all that is left to do is to
+// keep the hand moving: finish it if one player remains, or pass the draw /
+// betting turn on, or close the draw phase if they were the last one to draw.
+function afterSeatLeft(state,seat){
+    if(state.status!=='in-progress')return;
+    const live=liveUnfolded(state);
+    if(live.length<=1){awardSingle(state,live[0]);return;}
+    if(state.runout)return;                                   // no turn to pass during a runout
+    if(state.activeTurnSeat!==seat)return;
+    if(state.stage==='draw'){
+        const waiting=state.players.filter(q=>q&&!q.folded&&!q.out&&!q.drawDone&&!q.allIn);
+        if(waiting.length===0){
+            state.players.forEach(q=>{if(q)q.drawDone=false;});
+            state.stage='betting2';state.phase='BETTING 2';resetBetRound(state);
+            state.activeTurnSeat=nextSeat(state,state.dealerSeat);
+            if(state.activeTurnSeat<0)resolveShowdown(state);
+        }else{
+            state.activeTurnSeat=nextSeat(state,seat);
+            if(state.activeTurnSeat<0)resolveShowdown(state);
+        }
+        return;
+    }
+    advanceAfterAction(state);
 }
 // After a player takes a betting action, decide what happens next:
 // award the pot outright if only one player is left, move to the next
@@ -144,11 +251,11 @@ function advanceAfterAction(state){
 function processAction(state,seat,type,raiseTo=0){
     if(state.status!=='in-progress'||state.activeTurnSeat!==seat) return {ok:false,error:'NOT_YOUR_TURN'};
     const p=state.players[seat]; if(!eligibleToAct(p)) return {ok:false,error:'CANNOT_ACT'};
+    // While players are swapping cards there is no betting to act on.
+    if(state.stage==='draw') return {ok:false,error:'USE_DRAW'};
     const toCall=Math.max(0,state.currentHighBet-p.currentBet);
     if(type==='fold'){
-        // Fold is a 5-card-draw-only action in this project. Texas Hold'em
-        // intentionally uses the other three controls only.
-        if(state.variant==='draw') return {ok:false,error:'FOLD_NOT_AVAILABLE'};
+        // Available in both variants (Texas Hold'em and 5-Card Draw).
         p.folded=true;p.lastAction='Fold';
     }
     else if(type==='check'){if(toCall!==0)return {ok:false,error:'CHECK_FACING_BET'};p.lastAction='Check';}
@@ -206,10 +313,11 @@ function initHand(state){
     }
 
     state.handNumber++; state.status='in-progress'; state.pot=0; state.showdownSummary='';
+    state.runout=false; state.runoutStep=0; state.winnerIds=[]; state.sidePots=[]; state.drawNotes=[];
     state.communityCards=[]; state.deck=shuffleDeck(createDeck());
     state.players.forEach(p=>{
         if(!p)return;
-        p.folded=false; p.allIn=false; p.out=p.chips<=0; p.currentBet=0;
+        p.folded=false; p.allIn=false; p.out=p.chips<=0; p.currentBet=0; p.contributed=0;
         p.lastAction=''; p.evalResult=null; p.cards=[]; p.drawDone=false; p.actedThisRound=false;
     });
 
@@ -243,6 +351,11 @@ function initHand(state){
     state.stage=state.variant==='holdem'?'preflop':'betting1';
     state.phase=state.variant==='holdem'?'PREFLOP':'BETTING 1';
     state.activeTurnSeat=nextSeat(state,bb);
+    // Blinds put everybody all-in: no betting is possible, so deal it out.
+    if(state.activeTurnSeat<0){
+        if(state.variant==='holdem'){state.runout=true;state.runoutStep=0;}
+        else resolveShowdown(state);
+    }
     return {ok:true};
 }
 // Handle a player's card-swap during the 5-card draw variant's draw phase.
@@ -260,6 +373,9 @@ function processDraw(state,seat,indices){
     while(p.cards.length<5&&state.deck.length)p.cards.push(state.deck.shift());
     p.lastAction=`Drew ${valid.length} card${valid.length===1?'':'s'}`;
     p.drawDone=true;
+    // Announce it: structured note for the phase banner + a chat line.
+    (state.drawNotes=state.drawNotes||[]).push({name:p.name,n:valid.length});
+    appendChatMessage('System',valid.length===0?t('drawStood',{name:p.name}):valid.length===1?t('drawChangedOne',{name:p.name}):t('drawChangedMany',{name:p.name,n:valid.length}),true);
     const remaining=state.players.filter(q=>q&&!q.folded&&!q.out&&!q.drawDone&&!q.allIn);
     if(remaining.length===0){
         state.players.forEach(q=>{if(q)q.drawDone=false;});
@@ -311,4 +427,8 @@ function botAction(){
 // feel paced rather than instant) whenever it's currently a bot's turn on
 // the host. Cancels any previously scheduled bot turn first so turns never
 // stack up or double-fire.
-function scheduleBot(){clearTimeout(botTimer);if(gameState.isHost&&gameState.status==='in-progress'&&gameState.players[gameState.activeTurnSeat]?.isBot)botTimer=setTimeout(botAction,650);}
+function scheduleBot(){
+    clearTimeout(botTimer);
+    scheduleRunout();   // also (re)arms the timed runout after all-ins -- see net.js
+    if(gameState.isHost&&gameState.status==='in-progress'&&gameState.players[gameState.activeTurnSeat]?.isBot)botTimer=setTimeout(botAction,650);
+}

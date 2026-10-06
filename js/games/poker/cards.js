@@ -65,9 +65,15 @@ function shuffleDeck(deck){
 function cardHTML(c,hidden=false,extra=''){
     // Keep hidden cards visually identical across peers. The winning-card
     // highlight is deliberately never applied to a hidden card.
-    if(!c || hidden) return `<div class="w-8 h-12 sm:w-11 sm:h-16 rounded-lg bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-900 border border-blue-400/50 flex items-center justify-center shadow-md poker-card shrink-0"><span class="text-blue-300 text-xs sm:text-sm font-black">♠</span></div>`;
+    // Colours/backgrounds are INLINE on purpose: the app uses Tailwind's runtime
+    // (CDN) build, which only generates a utility class after it first sees it in
+    // the DOM. A card whose colour class had never been used before (e.g. the first
+    // red card of the session) briefly rendered as a blank white face, or stayed
+    // that way on peers. Inline styles make rank and suit visible immediately.
+    if(!c || hidden) return `<div class="w-8 h-12 sm:w-11 sm:h-16 rounded-lg flex items-center justify-center shadow-md poker-card shrink-0" style="background:linear-gradient(135deg,#1d4ed8,#312e81 55%,#0f172a);border:1px solid rgba(96,165,250,.5)"><span style="color:#93c5fd;font-weight:900;font-size:14px">♠</span></div>`;
     const red=c.suit==='♥'||c.suit==='♦';
-    return `<div class="w-8 h-12 sm:w-11 sm:h-16 rounded-lg bg-white border border-slate-300 flex flex-col justify-between p-1 shadow-md poker-card font-extrabold shrink-0 ${red?'text-rose-500':'text-slate-950'} ${extra}"><div class="text-[9px] sm:text-[10px] leading-none font-black">${c.rank}<br>${c.suit}</div><div class="text-center text-xs sm:text-sm leading-none font-black">${c.suit}</div></div>`;
+    const ink=red?'#f43f5e':'#020617';
+    return `<div class="w-8 h-12 sm:w-11 sm:h-16 rounded-lg shadow-md poker-card pk-face shrink-0 ${extra}" style="color:${ink}"><div class="pk-rank">${c.rank}<br>${c.suit}</div><div class="pk-suit">${c.suit}</div></div>`;
 }
 
 // Stable identity used only for local rendering. Card objects are recreated

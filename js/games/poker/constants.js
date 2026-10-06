@@ -15,3 +15,9 @@ const HAND_TYPES = {
 };
 // Indices of the local player's own hole cards selected to discard (5-card draw variant)
 let drawSelection = new Set();
+// Host-only timer driving the paced runout (all remaining players all-in):
+// the board is dealt street by street with a pause in between.
+let runoutTimer = null;
+const POKER_TIMING = { runoutStep:1500 };   // ms: identical pause before every street of the all-in runout (must stay <= 1000)
+// Client-side render bookkeeping for the deal / reveal animations.
+let pokerBoardShown = 0;       // community cards already on screen

@@ -13,7 +13,8 @@ registerGame({
             pot:0, currentBet:0, currentHighBet:0, minRaise:20,
             currency:'USD', startingStack:1000, smallBlind:10, bigBlind:20,
             dealerSeat:-1, activeTurnSeat:-1, handNumber:0,
-            communityCards:[], deck:[], showdownSummary:''
+            communityCards:[], deck:[], showdownSummary:'',
+            runout:false, runoutStep:0, winnerIds:[], sidePots:[], drawNotes:[]
         };
     },
     resetRoom(){
@@ -21,7 +22,7 @@ registerGame({
         gameState.communityCards=[];gameState.pot=0;gameState.currentBet=0;gameState.currentHighBet=0;
     },
     createPlayer(base){
-        return {...base,chips:gameState.startingStack,currentBet:0,folded:false,isBot:!!base.isBot,cards:[]};
+        return {...base,chips:gameState.startingStack,currentBet:0,contributed:0,folded:false,isBot:!!base.isBot,cards:[]};
     },
 
     render:renderPokerUI,
@@ -34,7 +35,8 @@ registerGame({
     // Hole cards are private: every peer only sees its own until showdown.
     publicState(copy,peerId){
         copy.deck=[];
-        const revealAll=copy.phase==='SHOWDOWN';
+        // During a paced all-in runout the hands are already known, so they are shown face up.
+        const revealAll=copy.phase==='SHOWDOWN'||!!copy.runout;
         copy.players.forEach(p=>{
             if(!p?.cards)return;
             const mine=p.id===peerId;
@@ -61,15 +63,18 @@ registerGame({
         const p=gameState.players[i];
         if(p&&!p.folded&&!p.out){
             p.disconnected=true;p.folded=true;p.actedThisRound=true;p.lastAction='Disconnected';
-            if(gameState.activeTurnSeat===i)advanceAfterAction(gameState);
+            if(gameState.status==='in-progress')afterSeatLeft(gameState,i);
         }
     },
     // The previous host no longer owns a seat after promotion. Chips already
     // committed stay in the pot; removing the seat keeps the game moving.
     onHostPromoted(oldHostSeat){
-        const wasActiveTurn=gameState.activeTurnSeat===oldHostSeat;
+        const old=gameState.players[oldHostSeat];
+        if(old&&gameState.status==='in-progress'){
+            old.folded=true;old.out=true;old.actedThisRound=true;old.drawDone=true;
+            afterSeatLeft(gameState,oldHostSeat);
+        }
         gameState.players[oldHostSeat]=null;
-        if(wasActiveTurn&&gameState.status==='in-progress')advanceAfterAction(gameState);
     },
 
     // Called once, right after board.html has been mounted.

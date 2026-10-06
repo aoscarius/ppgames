@@ -38,6 +38,7 @@ function applyTableConfig(config={}){
 // and the table's own betting state, while keeping everyone seated.
 function pokerOnTableReset(){
     clearTimeout(botTimer);
+    clearTimeout(runoutTimer);runoutTimer=null;
     drawSelection.clear();
 
     gameState.players=gameState.players.map(p=>{
@@ -46,6 +47,7 @@ function pokerOnTableReset(){
             ...p,
             chips:gameState.startingStack,
             currentBet:0,
+            contributed:0,
             folded:false,
             allIn:false,
             out:false,
@@ -68,6 +70,7 @@ function pokerOnTableReset(){
     gameState.communityCards=[];
     gameState.deck=[];
     gameState.showdownSummary='';
+    gameState.runout=false;gameState.runoutStep=0;gameState.winnerIds=[];gameState.sidePots=[];gameState.drawNotes=[];
 
     const raiseInput=document.getElementById('raiseInput');
     if(raiseInput)raiseInput.value=gameState.minRaise;
@@ -82,37 +85,17 @@ function removeBotFromTable(seat){
 
     clearTimeout(botTimer);
 
-    const wasActive=gameState.status==='in-progress' && gameState.activeTurnSeat===seat;
-
     // A bot that leaves during a hand is treated like a folded/disconnected
-    // player. Any chips it already put into the pot stay there.
+    // player. Any chips it already put into the pot stay there as dead money
+    // (the seat is cleared below, so resolveShowdown() adds them to the main pot).
     if(gameState.status==='in-progress'){
         bot.folded=true;
         bot.out=true;
         bot.actedThisRound=true;
         bot.drawDone=true;
         bot.lastAction='Removed by host';
-
-        if(wasActive){
-            if(gameState.stage==='draw'){
-                const remaining=gameState.players.filter((p,i)=>
-                    i!==seat && p && !p.folded && !p.out && !p.drawDone && !p.allIn
-                );
-                if(remaining.length===0){
-                    gameState.players.forEach(p=>{if(p)p.drawDone=false;});
-                    gameState.stage='betting2';
-                    gameState.phase='BETTING 2';
-                    resetBetRound(gameState);
-                    gameState.activeTurnSeat=nextSeat(gameState,gameState.dealerSeat);
-                    if(gameState.activeTurnSeat<0)resolveShowdown(gameState);
-                }else{
-                    gameState.activeTurnSeat=nextSeat(gameState,seat);
-                    if(gameState.activeTurnSeat<0)resolveShowdown(gameState);
-                }
-            }else{
-                advanceAfterAction(gameState);
-            }
-        }
+        // afterSeatLeft() needs the seat to still exist while it works out whose turn is next.
+        afterSeatLeft(gameState,seat);
     }
 
     gameState.players[seat]=null;
@@ -120,6 +103,21 @@ function removeBotFromTable(seat){
     broadcastState();
     renderTableUI();
     scheduleBot();
+}
+
+// Paced runout: when everyone left is all-in, the host deals the remaining
+// board street by street with a pause between them (see runoutStep() in logic.js).
+function scheduleRunout(){
+    if(!gameState.isHost)return;
+    if(gameState.status!=='in-progress'||!gameState.runout){clearTimeout(runoutTimer);runoutTimer=null;return;}
+    if(runoutTimer)return;   // one pending step at a time
+    const delay=POKER_TIMING.runoutStep;
+    runoutTimer=setTimeout(()=>{
+        runoutTimer=null;
+        if(!gameState.isHost||gameState.status!=='in-progress'||!gameState.runout)return;
+        runoutStep(gameState);
+        broadcastState();renderTableUI();scheduleBot();
+    },delay);
 }
 
 function startHand(){

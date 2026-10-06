@@ -176,3 +176,17 @@
 }
 
 /* Gameplay controls are visible only during an active hand. */
+
+/* New board cards: a very short pop. Transform only -- the card face (rank + suit) is always fully visible. */
+@keyframes poker-pop { from { transform: scale(.88); } to { transform: none; } }
+.deal-in:not(.winner-card) { animation: poker-pop .18s ease-out; }
+@media (prefers-reduced-motion: reduce) { .deal-in { animation: none; } }
+
+/* Card face: self-contained CSS (no dependency on Tailwind's runtime class generation). */
+.pk-face { display:flex; flex-direction:column; justify-content:space-between; padding:4px; background:#fff; border:1px solid #cbd5e1; font-weight:800; }
+.pk-rank { font-size:9px; line-height:1; font-weight:900; }
+.pk-suit { font-size:12px; line-height:1; font-weight:900; text-align:center; }
+@media (min-width:640px) { .pk-rank { font-size:10px; } .pk-suit { font-size:14px; } }
+
+.draw-notes { display:flex; flex-direction:column; gap:2px; align-items:center; text-align:center; font-size:11px; font-weight:700; color:#e2e8f0; }
+@media (min-width:640px) { .draw-notes { font-size:12px; } }

@@ -43,6 +43,12 @@ registerLocale({
         winnerFoldedLabel: 'Winner: {name} (All folded)',
         winnerLabel: 'Winner: {name} ({hand})',
         winnersLabel: 'Winners: {names} ({hand})',
+        sidePotWon: 'Side pot {amount}: {names} ({hand})',
+        uncalledReturned: '{name} gets back {amount} (uncalled)',
+        runoutDealing: 'All-in: dealing the board...',
+        drawStood: '{name} kept all cards',
+        drawChangedOne: '{name} changed 1 card',
+        drawChangedMany: '{name} changed {n} cards',
     },
     it: {
         allIn: 'All-in',
@@ -83,6 +89,12 @@ registerLocale({
         winnerFoldedLabel: 'Vincitore: {name} (Tutti ritirati)',
         winnerLabel: 'Vincitore: {name} ({hand})',
         winnersLabel: 'Vincitori: {names} ({hand})',
+        sidePotWon: 'Piatto secondario {amount}: {names} ({hand})',
+        uncalledReturned: '{name} riprende {amount} (non chiamati)',
+        runoutDealing: 'All-in: distribuzione delle carte...',
+        drawStood: '{name} non ha cambiato carte',
+        drawChangedOne: '{name} ha cambiato 1 carta',
+        drawChangedMany: '{name} ha cambiato {n} carte',
     }
 });
 

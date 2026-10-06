@@ -45,8 +45,24 @@ function positionPokerSeats(){
     }
 }
 
+function drawNoteText(name,n){
+    return n===0?t('drawStood',{name}):n===1?t('drawChangedOne',{name}):t('drawChangedMany',{name,n});
+}
+
+// 5-Card Draw has no community cards, so after each draw the board slot says
+// how many cards each player changed (during the draw and the second betting round).
+function drawNotesHTML(){
+    if(gameState.variant!=='draw'||gameState.status!=='in-progress'||!gameState.drawNotes?.length)return '';
+    if(gameState.stage!=='draw'&&gameState.stage!=='betting2')return '';
+    const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    return `<div class="draw-notes">${gameState.drawNotes.map(d=>`<div>${esc(drawNoteText(d.name,d.n))}</div>`).join('')}</div>`;
+}
+
 function getWinningPlayerIds(){
     if(gameState.phase !== 'SHOWDOWN') return new Set();
+
+    // The host records the real winners (side pots included).
+    if(Array.isArray(gameState.winnerIds) && gameState.winnerIds.length) return new Set(gameState.winnerIds);
 
     const players = gameState.players.filter(Boolean).filter(p => p.evalResult);
     if(!players.length) return new Set();
@@ -83,12 +99,12 @@ function renderSeat(i){
 
     if(p.cards?.length){
         const winningHand = gameState.phase === 'SHOWDOWN' && isWinner ? (p.evalResult?.bestCards || []) : [];
-        const visible = !(!local && gameState.phase !== 'SHOWDOWN');
+        const visible = local || gameState.phase === 'SHOWDOWN' || !!gameState.runout;
 
         cards = `<div class="seat-cards">${p.cards.map((c,j)=>{
             const winnerCard = visible && isWinningCard(c, winningHand) ? 'winner-card' : '';
             const drawCard = local && gameState.stage === 'draw' ? `draw-card-${j}` : '';
-            return cardHTML(c, !visible, `${drawCard} ${winnerCard}`.trim());
+            return cardHTML(c, !visible || !c, `${drawCard} ${winnerCard}`.trim());
         }).join('')}</div>`;
     }
 
@@ -126,10 +142,13 @@ function renderPokerUI(){
                 p.evalResult.bestCards.forEach(c=>winningCommunityCards.add(cardKey(c)));
             });
         }
-        cc.innerHTML=gameState.communityCards.length
-            ?gameState.communityCards.map(c=>cardHTML(c,false,winningCommunityCards.has(cardKey(c))?'winner-card':'')).join('')
-            :`<span class="text-slate-400 text-[11px] sm:text-xs italic">${gameState.status==='in-progress'?t('noCommunityCards'):t('waitingDealer')}</span>`;
+        const boardLen=gameState.communityCards.length;
+        const firstNew=boardLen>pokerBoardShown?pokerBoardShown:boardLen;   // cards that just arrived get the deal-in animation
+        cc.innerHTML=boardLen
+            ?gameState.communityCards.map((c,k)=>cardHTML(c,false,`${winningCommunityCards.has(cardKey(c))?'winner-card':''} ${k>=firstNew?'deal-in':''}`.trim())).join('')
+            :drawNotesHTML()||`<span class="text-slate-400 text-[11px] sm:text-xs italic">${gameState.status==='in-progress'?t('noCommunityCards'):t('waitingDealer')}</span>`;
         for(let i=0;i<8;i++)renderSeat(i);
+        pokerBoardShown=boardLen;
 
         const mySeat=gameState.players.findIndex(p=>p?.id===gameState.myPlayerId),mine=gameState.players[mySeat];
         const handRunning=gameState.status==='in-progress';
@@ -137,9 +156,10 @@ function renderPokerUI(){
         const drawPhase=myTurn&&gameState.stage==='draw';
         const foldBtn=document.getElementById('foldBtn');
         if(foldBtn){
-            foldBtn.disabled=!myTurn||drawPhase;
-            // The Fold action belongs only to the Texas Hold'em variant.
-            foldBtn.classList.toggle('hidden',!handRunning || gameState.variant==='draw');
+            // Fold is offered in every phase except the draw itself (nobody folds while swapping cards).
+            const inDrawStage=gameState.variant==='draw'&&gameState.stage==='draw';
+            foldBtn.disabled=!myTurn||inDrawStage;
+            foldBtn.classList.toggle('hidden',!handRunning||inDrawStage);
         }
         document.getElementById('checkCallBtn').disabled=!myTurn||drawPhase;
         document.getElementById('raiseBtn').disabled=!myTurn||drawPhase;
@@ -178,11 +198,12 @@ function renderPokerUI(){
         const sum=document.getElementById('playerHandSummary');
         if(gameState.status==='in-progress'){
             const activeP=gameState.players[gameState.activeTurnSeat],activeName=activeP?.name||'';
-            sum.textContent=drawPhase?t('drawDiscardPrompt'):myTurn?t('yourTurn'):activeName?t('turnOf',{name:activeName}):t('waitingForAction');
+            sum.textContent=gameState.runout?t('runoutDealing'):drawPhase?t('drawDiscardPrompt'):myTurn?t('yourTurn'):activeName?t('turnOf',{name:activeName}):t('waitingForAction');
         } else sum.textContent='';
 
         let phaseDisplay = gameState.phase;
         if (gameState.phase === 'LOBBY WAITING') phaseDisplay = t('lobbyWaiting');
+        else if (gameState.runout && gameState.status === 'in-progress') phaseDisplay = `${gameState.phase} · ${t('runoutDealing')}`;
         else if (gameState.phase === 'SHOWDOWN' && gameState.showdownSummary) phaseDisplay = gameState.showdownSummary;
         document.getElementById('gamePhaseText').textContent = phaseDisplay;
 
@@ -190,7 +211,7 @@ function renderPokerUI(){
         if(drawBtn){
             drawBtn.disabled=!myTurn||!drawPhase;
             // The Draw action belongs only to the 5-Card Draw variant.
-            drawBtn.classList.toggle('hidden',!handRunning || gameState.variant!=='draw');
+            drawBtn.classList.toggle('hidden',!handRunning || gameState.variant!=='draw' || gameState.stage!=='draw');
         }
         renderRoomHistory();
     }catch(e){logMessage(`Render error: ${e.message}`,'error');}
