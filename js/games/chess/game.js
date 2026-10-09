@@ -6,6 +6,9 @@
 registerGame({
     id:'chess',
 
+    // Strength of the bot (see CHESS_BOT_LEVELS in bot.js); chosen by the host, synced to everyone.
+    stateDefaults(){ return {chessBotLevel:'medium'}; },
+
     resetRoom(){ gameState.chess=defaultChessState(); },
     onTableReset(){ gameState.chess=defaultChessState(); },
     createPlayer(base){ return {id:base.id,name:base.name,isBot:!!base.isBot,disconnected:false}; },
@@ -37,6 +40,12 @@ registerGame({
 
     bind(){
         const $=id=>document.getElementById(id);
+        $('chessBotLevel').onchange=e=>{
+            if(!gameState.isHost)return;
+            if(CHESS_BOT_LEVELS[e.target.value])gameState.chessBotLevel=e.target.value;
+            broadcastState();
+            renderTableUI();
+        };
         $('startChessBtn').onclick=()=>{if(gameState.isHost)hostStartChessMatch();};
         $('resignBtn').onclick=()=>{
             showModal(t('titleResign'),t('confirmResign'),[

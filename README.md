@@ -6,8 +6,8 @@ authoritative source of truth for the game state), every other browser
 connects to it directly over WebRTC via [PeerJS](https://peerjs.com/), and
 the whole thing runs from plain static files.
 
-Currently playable: **Poker** (Texas Hold'em and 5-Card Draw), **Chess**,
-**Othello**, **Naval Battle** and **Monopolio** (2-6 players, with mortgages,
+Currently playable: **Poker** (Texas Hold'em and 5-Card Draw), **Chess** (bot with Easy / Medium / Hard / Expert levels for solo play),
+**Othello**, **Go** (9×9, 13×13 or 19×19 with dead-stone marking and area scoring), **Naval Battle** and **Monopolio** (2-6 players, with mortgages,
 houses/hotels and player-to-player trading; no auctions).
 
 ## Running it

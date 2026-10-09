@@ -71,7 +71,7 @@ const GAME_REGISTRY = {
         icon:'♟', accentBg:'bg-amber-600', implemented:true, minPlayers:2, maxPlayers:2,
         cardClass:'border-amber-500/60 bg-amber-950/20 hover:bg-amber-950/40',
         badgeClass:'text-amber-400',
-        scripts:['js/games/chess/engine.js','js/games/chess/logic.js','js/games/chess/net.js',
+        scripts:['js/games/chess/engine.js','js/games/chess/bot.js','js/games/chess/logic.js','js/games/chess/net.js',
                  'js/games/chess/ui.js','js/games/chess/game.js'],
         styles:['css/games/chess.css'],
         markup:'js/games/chess/board.html',
@@ -97,6 +97,16 @@ const GAME_REGISTRY = {
         markup:'js/games/naval/board.html',
         locale:'js/games/naval/locale.js'
     },
+    go: {
+        id:'go', nameKey:'goGame', descKey:'goDescription', roomKey:'goRoom',
+        icon:'⚪', accentBg:'bg-lime-600', implemented:true, minPlayers:2, maxPlayers:2,
+        cardClass:'border-lime-500/60 bg-lime-950/20 hover:bg-lime-950/40',
+        badgeClass:'text-lime-400',
+        scripts:['js/games/go/logic.js','js/games/go/net.js','js/games/go/ui.js','js/games/go/game.js'],
+        styles:['css/games/go.css'],
+        markup:'js/games/go/board.html',
+        locale:'js/games/go/locale.js'
+    },
     monopolio: {
         id:'monopolio', nameKey:'monopolioGame', descKey:'monopolioDescription', roomKey:'monopolioRoom',
         icon:'🎩', accentBg:'bg-rose-600', implemented:true, minPlayers:2, maxPlayers:6,
@@ -119,6 +129,7 @@ registerLocale({
         othelloGame: 'Othello', othelloDescription: 'Flip your opponent\'s discs and take the whole board',
         navalGame: 'Naval Battle', navalDescription: 'Hide your fleet, hunt theirs. Sink every ship first',
         monopolioGame: 'Monopolio', monopolioDescription: 'Buy, build and trade your way to a fortune',
+        goGame: 'Go', goDescription: 'Surround territory with black and white stones. Simple rules, endless depth',
     },
     it: {
         pokerGame: 'Poker', pokerDescription: 'Texas Hold\'em e 5-Card Draw. Bluffa e vinci il piatto',
@@ -126,6 +137,7 @@ registerLocale({
         othelloGame: 'Othello', othelloDescription: 'Ribalta le pedine avversarie e conquista la scacchiera',
         navalGame: 'Battaglia Navale', navalDescription: 'Nascondi la flotta, caccia quella avversaria. Affonda tutto per primo',
         monopolioGame: 'Monopolio', monopolioDescription: 'Compra, costruisci e scambia fino a fare fortuna',
+        goGame: 'Go', goDescription: 'Circonda il territorio con pedine nere e bianche. Regole semplici, profondità infinita',
     }
 });
 

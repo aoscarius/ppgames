@@ -22,6 +22,17 @@
                   <span id="chessTopClockDot" class="w-2.5 h-2.5 rounded-full bg-slate-700 shrink-0"></span>
               </div>
 
+              <!-- Bot difficulty (host only, shown while a bot is seated) -->
+              <div id="chessBotLevelWrap" class="hidden w-full max-w-md flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                  <label for="chessBotLevel" class="text-[11px] font-bold text-slate-300" data-i18n="chessBotLevel">Bot level</label>
+                  <select id="chessBotLevel" class="bg-slate-800 border border-slate-700 text-slate-100 text-xs font-bold rounded-lg px-2 py-1">
+                      <option value="easy" data-i18n="chessLevel_easy">Easy</option>
+                      <option value="medium" data-i18n="chessLevel_medium">Medium</option>
+                      <option value="hard" data-i18n="chessLevel_hard">Hard</option>
+                      <option value="expert" data-i18n="chessLevel_expert">Expert</option>
+                  </select>
+              </div>
+
               <!-- Board -->
               <div class="relative">
                   <div id="chessBoard" class="chess-board"></div>

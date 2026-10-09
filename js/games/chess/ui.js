@@ -172,6 +172,14 @@ function renderChessUI(){
             startBtn.disabled=!canStart;
             startBtn.querySelector('span').textContent = cs.status==='ended' ? t('rematch') : t('startMatch');
         }
+        // Bot difficulty: host only, and only when a bot is seated.
+        const levelWrap=document.getElementById('chessBotLevelWrap');
+        if(levelWrap){
+            const hasBot=gameState.players.some(p=>p&&p.isBot);
+            levelWrap.classList.toggle('hidden',!(gameState.isHost&&hasBot));
+            const sel=document.getElementById('chessBotLevel');
+            if(sel&&sel.value!==chessBotLevel(gameState))sel.value=chessBotLevel(gameState);
+        }
         const resignBtn=document.getElementById('resignBtn');
         if(resignBtn)resignBtn.disabled = !(cs.status==='in-progress' && !!localColor);
         const offerDrawBtn=document.getElementById('offerDrawBtn');

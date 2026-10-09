@@ -202,142 +202,30 @@ function chessResultSummary(state){
 }
 
 /* --------------------------------------------------------------------
-   Bot engine: iterative-deepening alpha-beta negamax with a time budget,
-   piece-square-table evaluation, capture quiescence search and MVV-LVA
-   move ordering. The search stops as soon as CHESS_BOT_TIME_MS has elapsed
-   and the best move of the last COMPLETED depth is played, so the host's
-   UI never freezes for long no matter how complex the position is.
+   Bot: the search itself lives in bot.js (ChessBot), a fast bitless 0x88
+   engine; this wrapper only picks the difficulty and guarantees the host
+   always gets a LEGAL move back (chess.js validates it again in
+   processChessMove, and a random legal move is the fallback if anything
+   inside the search ever throws).
    -------------------------------------------------------------------- */
-const CHESS_PIECE_VALUES={p:100,n:320,b:330,r:500,q:900,k:0};
-const CHESS_BOT_TIME_MS=800;
-const CHESS_BOT_MAX_DEPTH=6;
-const CHESS_MATE=100000;
-
-// Piece-square tables, written from White's point of view with rank 8 on the
-// first row (the same orientation as chess.board()). Black uses them mirrored.
-const CHESS_PST={
-    p:[[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],
-    n:[[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],
-    b:[[-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,10,10,5,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],[-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]],
-    r:[[0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]],
-    q:[[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],
-    k:[[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]],
-    // King table once the queens are gone: centralise instead of hiding.
-    kEnd:[[-50,-40,-30,-20,-20,-30,-40,-50],[-30,-20,-10,0,0,-10,-20,-30],[-30,-10,20,30,30,20,-10,-30],[-30,-10,30,40,40,30,-10,-30],[-30,-10,30,40,40,30,-10,-30],[-30,-10,20,30,30,20,-10,-30],[-30,-30,0,0,0,0,-30,-30],[-50,-30,-30,-30,-30,-30,-30,-50]]
-};
-
-// Static evaluation from White's point of view (centipawns).
-function chessStaticEval(chess){
-    let score=0,material=0;
-    const board=chess.board();
-    for(const row of board)for(const sq of row)if(sq&&sq.type!=='k'&&sq.type!=='p')material+=CHESS_PIECE_VALUES[sq.type];
-    const endgame=material<=1400;
-    for(let r=0;r<8;r++)for(let f=0;f<8;f++){
-        const sq=board[r][f];if(!sq)continue;
-        const table=sq.type==='k'&&endgame?CHESS_PST.kEnd:CHESS_PST[sq.type];
-        if(sq.color==='w')score+=CHESS_PIECE_VALUES[sq.type]+table[r][f];
-        else score-=CHESS_PIECE_VALUES[sq.type]+table[7-r][f];
-    }
-    return score;
-}
-
-// MVV-LVA: take big pieces with small ones first; promotions and checks early.
-function chessMoveOrderScore(m){
-    let s=0;
-    if(m.captured)s+=10*CHESS_PIECE_VALUES[m.captured]-CHESS_PIECE_VALUES[m.piece]/10+1000;
-    if(m.promotion)s+=CHESS_PIECE_VALUES[m.promotion]+900;
-    if(m.san&&m.san.indexOf('+')>=0)s+=50;
-    return s;
-}
-function chessOrderedMoves(chess,onlyNoisy){
-    let moves=chess.moves({verbose:true});
-    if(onlyNoisy)moves=moves.filter(m=>m.captured||m.promotion);
-    return moves.sort((a,b)=>chessMoveOrderScore(b)-chessMoveOrderScore(a));
-}
-
-const CHESS_TIMEOUT={timeout:true};
-let chessSearchDeadline=0,chessSearchNodes=0;
-function chessCheckTime(){
-    if((++chessSearchNodes&127)===0&&Date.now()>chessSearchDeadline)throw CHESS_TIMEOUT;
-}
-function chessInCheck(chess){return chess.isCheck?chess.isCheck():chess.inCheck();}
-
-// Only captures/promotions are searched at the horizon so the bot doesn't
-// stop in the middle of an exchange and misjudge it.
-function chessQuiesce(chess,alpha,beta,sign,qdepth){
-    chessCheckTime();
-    const stand=sign*chessStaticEval(chess);
-    if(stand>=beta)return stand;
-    if(stand>alpha)alpha=stand;
-    if(qdepth<=0)return stand;
-    for(const m of chessOrderedMoves(chess,true)){
-        chess.move({from:m.from,to:m.to,promotion:m.promotion});
-        const val=-chessQuiesce(chess,-beta,-alpha,-sign,qdepth-1);
-        chess.undo();
-        if(val>=beta)return val;
-        if(val>alpha)alpha=val;
-    }
-    return alpha;
-}
-
-function chessNegamax(chess,depth,alpha,beta,sign,ply){
-    chessCheckTime();
-    if(chess.isDrawByFiftyMoves&&chess.isDrawByFiftyMoves())return 0;
-    const check=chessInCheck(chess);
-    if(check)depth++;                                   // check extension
-    if(depth<=0)return chessQuiesce(chess,alpha,beta,sign,4);
-    const moves=chessOrderedMoves(chess);
-    if(!moves.length)return check?-(CHESS_MATE-ply):0;  // mated (prefer faster mates) or stalemate
-    let best=-Infinity;
-    for(const m of moves){
-        chess.move({from:m.from,to:m.to,promotion:m.promotion});
-        const val=-chessNegamax(chess,depth-1,-beta,-alpha,-sign,ply+1);
-        chess.undo();
-        if(val>best)best=val;
-        if(best>alpha)alpha=best;
-        if(alpha>=beta)break;
-    }
-    return best;
+const CHESS_BOT_LEVEL_ORDER=['easy','medium','hard','expert'];
+function chessBotLevel(state=gameState){
+    return CHESS_BOT_LEVELS[state.chessBotLevel]?state.chessBotLevel:'medium';
 }
 
 // Picks a move for the bot to play in the current position. Returns
 // {from,to,promotion} or null if there's no legal move (game over).
-function chooseChessBotMove(state,timeMs=CHESS_BOT_TIME_MS){
+function chooseChessBotMove(state,level){
     const chess=loadChessEngine(state);
-    let moves=chessOrderedMoves(chess);
-    if(!moves.length)return null;
-    if(moves.length===1)return {from:moves[0].from,to:moves[0].to,promotion:moves[0].promotion||'q'};
-    const sign=chess.turn()==='w'?1:-1;
-    const cs=state.chess,plies=cs?.moveHistory?.length||0;
-    chessSearchDeadline=Date.now()+timeMs;chessSearchNodes=0;
-
-    let bestMove=moves[0];
-    let scored=moves.map(m=>({m,v:0}));
-    let exact=null;   // exact (full-window) scores of the last completed depth <=2
+    if(chess.isGameOver())return null;
     try{
-        for(let depth=1;depth<=CHESS_BOT_MAX_DEPTH;depth++){
-            let alpha=-Infinity;const cur=[];
-            for(const e of scored){
-                const m=e.m;
-                chess.move({from:m.from,to:m.to,promotion:m.promotion});
-                // Full window at the root of the first plies, so equal-ish moves can be told apart.
-                const val=-chessNegamax(chess,depth-1,-Infinity,-(depth<=2?-Infinity:alpha),-sign,1);
-                chess.undo();
-                cur.push({m,v:val});
-                if(val>alpha)alpha=val;
-            }
-            cur.sort((a,b)=>b.v-a.v);
-            scored=cur;bestMove=cur[0].m;
-            if(depth<=2)exact=cur;
-            if(Math.abs(cur[0].v)>=CHESS_MATE-100)break;      // forced mate found
-        }
+        const mv=ChessBot.chooseMove(state.chess.fen,level||chessBotLevel(state));
+        if(mv)return {from:mv.from,to:mv.to,promotion:mv.promotion||'q'};
     }catch(e){
-        if(e!==CHESS_TIMEOUT)throw e;
+        if(typeof logMessage==='function')logMessage(`Chess bot error: ${e.message}`,'error');
     }
-    // Opening variety: among clearly-equal early moves pick randomly.
-    if(plies<8&&exact&&Math.abs(exact[0].v)<1000){
-        const top=exact[0].v,pool=exact.filter(e=>top-e.v<=10&&e.m===bestMove||top-e.v<=5);
-        if(pool.length&&pool.some(e=>e.m===bestMove))bestMove=pool[Math.floor(Math.random()*pool.length)].m;
-    }
-    return {from:bestMove.from,to:bestMove.to,promotion:bestMove.promotion||'q'};
+    const moves=chess.moves({verbose:true});
+    if(!moves.length)return null;
+    const m=moves[Math.floor(Math.random()*moves.length)];
+    return {from:m.from,to:m.to,promotion:m.promotion||'q'};
 }

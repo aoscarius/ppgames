@@ -1,0 +1,24 @@
+/* --- Go board (SVG) --- */
+.go-board { width: min(92vw, 440px); aspect-ratio: 1 / 1; }
+@media (min-width: 640px) { .go-board { width: min(62vw, 520px); } }
+.go-svg { width: 100%; height: 100%; display: block; border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.5); touch-action: manipulation; }
+.go-wood { fill: #d9a95a; }
+.go-line { stroke: #4a3412; stroke-width: 1; stroke-linecap: square; }
+.go-hoshi { fill: #4a3412; }
+.go-stone { stroke: rgba(0,0,0,.45); stroke-width: .8; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.45)); }
+.go-stone.go-dead { opacity: .45; }
+.go-dead-x { stroke-width: 2; fill: none; stroke-linecap: round; }
+.go-dead-x.on-black { stroke: #f8fafc; }
+.go-dead-x.on-white { stroke: #0f172a; }
+.go-terr { stroke: none; }
+.go-terr.terr-b { fill: #0f172a; opacity: .85; }
+.go-terr.terr-w { fill: #f8fafc; opacity: .95; stroke: #0f172a; stroke-width: .6; }
+.go-last { fill: none; stroke-width: 2; }
+.go-last.on-black { stroke: #f8fafc; }
+.go-last.on-white { stroke: #0f172a; }
+.go-hit { fill: transparent; cursor: pointer; }
+.go-turn-b .go-hit:hover { fill: rgba(0,0,0,.35); }
+.go-turn-w .go-hit:hover { fill: rgba(255,255,255,.6); }
+.go-stone-chip { width: 14px; height: 14px; border-radius: 999px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.go-stone-black { background: radial-gradient(circle at 35% 30%, #6b7280, #05070a 70%); }
+.go-stone-white { background: radial-gradient(circle at 35% 30%, #ffffff, #cbd5e1 70%); }
