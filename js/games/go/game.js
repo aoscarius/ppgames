@@ -6,7 +6,7 @@
 registerGame({
     id:'go',
 
-    stateDefaults(){ return {goSize:9}; },
+    stateDefaults(){ return {goSize:9,goBotLevel:'medium'}; },
     resetRoom(){ gameState.go=defaultGoState(GO_SIZES.includes(gameState.goSize)?gameState.goSize:9); },
     onTableReset(){ gameState.go=defaultGoState(GO_SIZES.includes(gameState.goSize)?gameState.goSize:9); },
     createPlayer(base){ return {id:base.id,name:base.name,isBot:!!base.isBot,disconnected:false}; },
@@ -49,6 +49,12 @@ registerGame({
                 {text:'Cancel',bg:'bg-purple-600 hover:bg-purple-500',close:true}
             ]);
         };
+        $('goBotLevel').onchange=e=>{
+            if(!gameState.isHost)return;
+            if(GO_BOT_LEVELS[e.target.value])gameState.goBotLevel=e.target.value;
+            broadcastState();renderTableUI();
+        };
+        $('goHintBtn').onclick=()=>showGoHint();
         $('goSizeSelect').onchange=e=>{
             if(!gameState.isHost)return;
             const size=Number(e.target.value);

@@ -9,6 +9,7 @@
 // Chess-only UI runtime state (client-side selection, never synced).
 let chessSelectedSquare = null;   // e.g. 'e2' -- the square the local player tapped to move from, or null
 let chessLegalTargets = [];       // legal destination squares for chessSelectedSquare, for move hints
+let chessHint = null;             // {from,to,fen} suggested move (local only, valid while the position is unchanged)
 let chessPendingPromotion = null; // {from,to} awaiting a promotion-piece choice, or null
 
 const CHESS_PIECE_GLYPHS = {
@@ -124,6 +125,7 @@ function renderChessUI(){
             el.className='chess-square '+(light?'chess-square-light':'chess-square-dark');
             if(lastMove&&(lastMove.from===square||lastMove.to===square))el.classList.add('chess-square-lastmove');
             if(chessSelectedSquare===square)el.classList.add('chess-square-selected');
+            if(chessHint&&chessHint.fen===cs.fen&&(chessHint.from===square||chessHint.to===square))el.classList.add(chessHint.to===square?'chess-square-hint-to':'chess-square-hint-from');
             if(kingInCheckSquare===square)el.classList.add('chess-square-check');
             let inner='';
             if(piece)inner+=`<span class="chess-piece ${piece.color==='w'?'chess-piece-white':'chess-piece-black'}">${CHESS_PIECE_GLYPHS[piece.color][piece.type]}</span>`;
@@ -172,13 +174,19 @@ function renderChessUI(){
             startBtn.disabled=!canStart;
             startBtn.querySelector('span').textContent = cs.status==='ended' ? t('rematch') : t('startMatch');
         }
-        // Bot difficulty: host only, and only when a bot is seated.
+        // Bot difficulty: host only, and only in a 1-vs-1 game against a bot.
         const levelWrap=document.getElementById('chessBotLevelWrap');
         if(levelWrap){
-            const hasBot=gameState.players.some(p=>p&&p.isBot);
-            levelWrap.classList.toggle('hidden',!(gameState.isHost&&hasBot));
+            levelWrap.classList.toggle('hidden',!(gameState.isHost&&chessSoloVsBot(gameState)));
             const sel=document.getElementById('chessBotLevel');
             if(sel&&sel.value!==chessBotLevel(gameState))sel.value=chessBotLevel(gameState);
+        }
+        // "Suggest a move": only against a bot on Easy level, on the human's turn.
+        const hintBtn=document.getElementById('chessHintBtn');
+        if(hintBtn){
+            const show=chessSoloVsBot(gameState)&&chessBotLevel(gameState)==='easy'&&gameState.players.some(p=>p?.id===gameState.myPlayerId);
+            hintBtn.classList.toggle('hidden',!show);
+            hintBtn.disabled=!(show&&running&&turnColor===localColor);
         }
         const resignBtn=document.getElementById('resignBtn');
         if(resignBtn)resignBtn.disabled = !(cs.status==='in-progress' && !!localColor);
@@ -281,4 +289,21 @@ function showChessPromotionModal(color){
             chessPendingPromotion=null;
         };
     });
+}
+
+
+// Ask the engine for the best move in the current position and highlight it on the board.
+function showChessHint(){
+    const cs=gameState.chess;
+    if(!cs||cs.status!=='in-progress'||!chessSoloVsBot(gameState))return;
+    const btn=document.getElementById('chessHintBtn');
+    if(btn)btn.disabled=true;
+    setTimeout(()=>{       // let the button repaint first: the search takes up to ~1 s
+        try{
+            const mv=ChessBot.chooseMove(cs.fen,{depth:16,time:900,margin:0});
+            chessHint=mv?{from:mv.from,to:mv.to,fen:cs.fen}:null;
+        }catch(e){chessHint=null;}
+        chessSelectedSquare=null;chessLegalTargets=[];
+        renderTableUI();
+    },30);
 }

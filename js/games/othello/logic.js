@@ -202,7 +202,34 @@ const OTHELLO_WEIGHTS=(()=>{
     return w;
 })();
 
-function chooseOthelloBotMove(state){
+// Bot features (difficulty, move hints) exist only in a 1-vs-1 game against a bot.
+function othelloSoloVsBot(state=gameState){
+    const ps=othelloMatchPlayers(state);
+    return ps.length===2&&ps.filter(p=>p.isBot).length===1;
+}
+function othelloBotLevel(state=gameState){
+    return OTHELLO_BOT_LEVELS[state.othelloBotLevel]?state.othelloBotLevel:'medium';
+}
+
+// Move for the side to play in state.othello, at the host-selected difficulty
+// (see bot.js). Returns {r,c} or null. `level` overrides the room's level.
+function chooseOthelloBotMove(state,level){
+    const os=state.othello;
+    const lv=level||othelloBotLevel(state);
+    if(OTHELLO_BOT_LEVELS[lv]?.kind==='heuristic')return chooseOthelloHeuristicMove(state);
+    try{
+        return OthelloBot.chooseMove(os.board,os.turn,lv);
+    }catch(e){
+        // never let a bot bug stall the game: fall back to the weights heuristic
+        const moves=othelloLegalMoves(os.board,os.turn);
+        if(!moves.length)return null;
+        return moves.reduce((a,m)=>OTHELLO_WEIGHTS[m.r][m.c]>OTHELLO_WEIGHTS[a.r][a.c]?m:a,moves[0]);
+    }
+}
+
+
+// Medium level: the original one-ply positional heuristic.
+function chooseOthelloHeuristicMove(state){
     const board=state.othello.board,color=state.othello.turn;
     const moves=othelloLegalMoves(board,color);
     if(!moves.length)return null;

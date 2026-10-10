@@ -215,7 +215,7 @@ function afterSeatLeft(state,seat){
         const waiting=state.players.filter(q=>q&&!q.folded&&!q.out&&!q.drawDone&&!q.allIn);
         if(waiting.length===0){
             state.players.forEach(q=>{if(q)q.drawDone=false;});
-            state.stage='betting2';state.phase='BETTING 2';resetBetRound(state);
+            state.stage='betting2';state.phase='BETTING 2';state.drawNotes=[];resetBetRound(state);   // everybody has drawn: the "changed N cards" notes go away
             state.activeTurnSeat=nextSeat(state,state.dealerSeat);
             if(state.activeTurnSeat<0)resolveShowdown(state);
         }else{
@@ -379,7 +379,7 @@ function processDraw(state,seat,indices){
     const remaining=state.players.filter(q=>q&&!q.folded&&!q.out&&!q.drawDone&&!q.allIn);
     if(remaining.length===0){
         state.players.forEach(q=>{if(q)q.drawDone=false;});
-        state.stage='betting2';state.phase='BETTING 2';resetBetRound(state);
+        state.stage='betting2';state.phase='BETTING 2';state.drawNotes=[];resetBetRound(state);   // everybody has drawn: the "changed N cards" notes go away
         state.activeTurnSeat=nextSeat(state,state.dealerSeat);
     } else state.activeTurnSeat=nextSeat(state,seat);
     return {ok:true};

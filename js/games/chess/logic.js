@@ -209,6 +209,12 @@ function chessResultSummary(state){
    inside the search ever throws).
    -------------------------------------------------------------------- */
 const CHESS_BOT_LEVEL_ORDER=['easy','medium','hard','expert'];
+// Bot features (difficulty, move hints) exist only in a 1-vs-1 game against a bot:
+// exactly two seated players, one human and one bot.
+function chessSoloVsBot(state=gameState){
+    const ps=chessMatchPlayers(state);
+    return ps.length===2&&ps.filter(p=>p.isBot).length===1;
+}
 function chessBotLevel(state=gameState){
     return CHESS_BOT_LEVELS[state.chessBotLevel]?state.chessBotLevel:'medium';
 }

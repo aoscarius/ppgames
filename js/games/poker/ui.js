@@ -50,10 +50,10 @@ function drawNoteText(name,n){
 }
 
 // 5-Card Draw has no community cards, so after each draw the board slot says
-// how many cards each player changed (during the draw and the second betting round).
+// how many cards each player changed (only while the draw phase lasts).
 function drawNotesHTML(){
     if(gameState.variant!=='draw'||gameState.status!=='in-progress'||!gameState.drawNotes?.length)return '';
-    if(gameState.stage!=='draw'&&gameState.stage!=='betting2')return '';
+    if(gameState.stage!=='draw')return '';
     const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     return `<div class="draw-notes">${gameState.drawNotes.map(d=>`<div>${esc(drawNoteText(d.name,d.n))}</div>`).join('')}</div>`;
 }

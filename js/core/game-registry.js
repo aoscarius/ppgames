@@ -82,7 +82,7 @@ const GAME_REGISTRY = {
         icon:'⚫', accentBg:'bg-teal-600', implemented:true, minPlayers:2, maxPlayers:2,
         cardClass:'border-teal-500/60 bg-teal-950/20 hover:bg-teal-950/40',
         badgeClass:'text-teal-400',
-        scripts:['js/games/othello/logic.js','js/games/othello/net.js','js/games/othello/ui.js','js/games/othello/game.js'],
+        scripts:['js/games/othello/logic.js','js/games/othello/bot.js','js/games/othello/net.js','js/games/othello/ui.js','js/games/othello/game.js'],
         styles:['css/games/othello.css'],
         markup:'js/games/othello/board.html',
         locale:'js/games/othello/locale.js'
@@ -102,7 +102,7 @@ const GAME_REGISTRY = {
         icon:'⚪', accentBg:'bg-lime-600', implemented:true, minPlayers:2, maxPlayers:2,
         cardClass:'border-lime-500/60 bg-lime-950/20 hover:bg-lime-950/40',
         badgeClass:'text-lime-400',
-        scripts:['js/games/go/logic.js','js/games/go/net.js','js/games/go/ui.js','js/games/go/game.js'],
+        scripts:['js/games/go/logic.js','js/games/go/bot.js','js/games/go/net.js','js/games/go/ui.js','js/games/go/game.js'],
         styles:['css/games/go.css'],
         markup:'js/games/go/board.html',
         locale:'js/games/go/locale.js'

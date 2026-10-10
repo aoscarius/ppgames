@@ -81,3 +81,11 @@
     .chess-square { transition: none; }
 }
 
+
+/* Suggested move (Easy level hint): origin and destination squares. */
+.chess-square-hint-from::before,.chess-square-hint-to::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: inset 0 0 0 3px rgba(34, 197, 94, .95);
+    background: rgba(34, 197, 94, .22);
+}
+.chess-square-hint-to::before { background: rgba(34, 197, 94, .42); }

@@ -10,6 +10,9 @@ Currently playable: **Poker** (Texas Hold'em and 5-Card Draw), **Chess** (bot wi
 **Othello**, **Go** (9×9, 13×13 or 19×19 with dead-stone marking and area scoring), **Naval Battle** and **Monopolio** (2-6 players, with mortgages,
 houses/hotels and player-to-player trading; no auctions).
 
+In a 1-vs-1 game against a bot, Chess, Othello and Go let the host pick the bot's
+level (Easy / Medium / Hard / Expert); on Easy a **Hint** button shows the best move. This feature helps in game learning phases.
+
 ## Running it
 
 This is a static site — any static file server works. It does **not** work

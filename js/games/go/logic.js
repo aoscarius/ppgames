@@ -274,7 +274,7 @@ function goIsOwnEye(board,size,idx,color){
     return off>0?oppDiag===0:oppDiag<=1;
 }
 
-function goBotCandidates(g,colorInt){
+function goBotCandidates(g,colorInt,noise=1.5){
     const size=g.size,board=g.board,opp=colorInt===1?2:1,out=[];
     const stoneCount=board.reduce((n,v)=>n+(v?1:0),0);
     const hoshi=goHoshi(size);
@@ -284,7 +284,7 @@ function goBotCandidates(g,colorInt){
         if(!r.ok)continue;
         if(goIsOwnEye(board,size,idx,colorInt)&&r.captured.length===0)continue;
 
-        let score=Math.random()*1.5;
+        let score=Math.random()*noise;
         const x=idx%size,y=(idx-x)/size;
         score+=r.captured.length*12;
 
@@ -330,21 +330,63 @@ function goHoshi(size){
     return new Set(pts.map(([x,y])=>y*size+x));
 }
 
-// {pass:true} or {idx}. Looks at the position of the bot's colour in state.go.
-function chooseGoBotMove(state){
+/* ---- difficulty ----
+   easy    sloppy: lots of random noise in the scores and an occasional purely random move
+   medium  the plain heuristic above
+   hard    Monte-Carlo search (bot.js) over the heuristic's best candidates, ~1 s per move
+   expert  the same with a ~3 s budget (also used for hints, with a shorter one) */
+const GO_BOT_LEVELS={
+    easy:  {noise:7,  randomMove:0.2},
+    medium:{noise:1.5,randomMove:0},
+    hard:  {mc:true,time:1000,noise:0},
+    expert:{mc:true,time:3000,noise:0}
+};
+const GO_MC_CANDIDATES={9:16,13:12,19:9};      // how many heuristic candidates the search examines
+
+// Bot features (difficulty, move hints) exist only in a 1-vs-1 game against a bot.
+function goSoloVsBot(state=gameState){
+    const ps=goMatchPlayers(state);
+    return ps.length===2&&ps.filter(p=>p.isBot).length===1;
+}
+function goBotLevel(state=gameState){
+    return GO_BOT_LEVELS[state.goBotLevel]?state.goBotLevel:'medium';
+}
+
+// {pass:true} or {idx}. Looks at the position and the side to move in state.go.
+// level: key of GO_BOT_LEVELS (defaults to the room's level). opts.time overrides the search time (ms).
+function chooseGoBotMove(state,level,opts){
     const g=state.go;
-    const color=GO_COLOR[g.turn],opp=color===1?2:1;
-    const cands=goBotCandidates(g,color);
+    const cfg=GO_BOT_LEVELS[level||goBotLevel(state)]||GO_BOT_LEVELS.medium;
+    const color=GO_COLOR[g.turn];
+    const cands=goBotCandidates(g,color,cfg.noise);
+    cands.forEach(c=>{c.h=c.score;});          // raw heuristic value: used for the pass decision
     cands.sort((a,b)=>b.score-a.score);
-    const best=cands[0];
+
+    if(cfg.mc){
+        try{
+            const top=cands.filter(c=>c.h>-6).slice(0,GO_MC_CANDIDATES[g.size]||10);
+            if(!top.length)return {pass:true};
+            const r=GoBot.chooseMove(g,color,top,(opts&&opts.time)||cfg.time,true);
+            if(r.pass&&g.passes>=1)return {pass:true};
+            if(r.pass)return top.length&&g.moveCount<g.size*g.size*0.5?{idx:top[0].idx}:{pass:true};   // never pass early in the game
+            return {idx:r.idx};
+        }catch(e){
+            if(typeof logMessage==='function')logMessage(`Go bot error: ${e.message}`,'error');
+            // fall through to the plain heuristic
+        }
+    }
+    let best=cands[0];
+    if(cfg.randomMove&&cands.length&&Math.random()<cfg.randomMove&&g.moveCount<g.size*g.size){
+        const pick=cands[Math.floor(Math.random()*cands.length)];best={idx:pick.idx,score:99,h:99};
+    }
     // After the opponent passes: pass back if we are ahead on area (stones + closed territory).
     if(g.passes>=1){
         const sc=goScore(g.board,g.size,[],g.komi);
         const mine=color===1?sc.black:sc.white,theirs=color===1?sc.white:sc.black;
-        if(mine>theirs&&(!best||best.score<12))return {pass:true};
+        if(mine>theirs&&(!best||best.h<12))return {pass:true};
     }
     // Nothing useful left (or the game has gone on far too long): pass.
     const lateGame=g.moveCount>g.size*g.size*1.3;
-    if(!best||best.score<(lateGame?8:3.5)||g.moveCount>g.size*g.size*2.5)return {pass:true};
+    if(!best||best.h<(lateGame?8:3.5)||g.moveCount>g.size*g.size*2.5)return {pass:true};
     return {idx:best.idx};
 }

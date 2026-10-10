@@ -4,6 +4,8 @@
    (same pattern as the other board games).
    ======================================================================== */
 const GO_UNIT=30;           // SVG units per grid cell
+let goHint=null;            // {idx|null (null = pass),key} suggested move (local only, valid while the position is unchanged)
+const goHintKey=g=>`${g.moveCount}:${g.status}:${g.turn}`;
 
 function goLocalColor(){ return goColorOf(gameState,gameState.myPlayerId); }
 
@@ -52,6 +54,10 @@ function goBoardSVG(g,interactive,myTurnColor){
         const x=g.lastMove%n,y=(g.lastMove-x)/n;
         parts.push(`<circle cx="${px(x)}" cy="${px(y)}" r="${U*0.2}" class="go-last ${g.board[g.lastMove]===1?'on-black':'on-white'}"/>`);
     }
+    if(goHint&&goHint.key===goHintKey(g)&&goHint.idx!=null){
+        const x=goHint.idx%n,y=(goHint.idx-x)/n;
+        parts.push(`<circle cx="${px(x)}" cy="${px(y)}" r="${U*0.38}" class="go-hint"/>`);
+    }
     if(interactive){
         for(let i=0;i<n*n;i++){
             const x=i%n,y=(i-x)/n;
@@ -95,6 +101,7 @@ function renderGoUI(){
             phaseEl.textContent=`${t('goInProgress')} · ${t('goKomi',{komi:g.komi})}`;
             const cur=g.turn==='b'?black:white;
             summaryEl.textContent=myTurn?t('yourTurn'):t('goTurnOf',{name:cur?.name||'',color:t(g.turn==='b'?'goBlack':'goWhite')});
+            if(myTurn&&goHint&&goHint.key===goHintKey(g)&&goHint.idx==null)summaryEl.textContent=t('goHintPass');
         }else if(g.status==='scoring'){
             phaseEl.textContent=t('goScoring');
             const sc=goScore(g.board,g.size,g.dead,g.komi);
@@ -119,6 +126,20 @@ function renderGoUI(){
         acc.disabled=!(scoring&&localColor&&!g.accepted.includes(gameState.myPlayerId));
         res.disabled=!(scoring&&localColor);
         document.getElementById('goResignBtn').disabled=!((running||scoring)&&!!localColor);
+
+        // Bot level + "suggest a move": only in a 1-vs-1 game against a bot (hint: Easy level only).
+        const levelWrap=document.getElementById('goBotLevelWrap');
+        if(levelWrap){
+            levelWrap.classList.toggle('hidden',!(gameState.isHost&&goSoloVsBot(gameState)));
+            const sel=document.getElementById('goBotLevel');
+            if(sel&&sel.value!==goBotLevel(gameState))sel.value=goBotLevel(gameState);
+        }
+        const hintBtn=document.getElementById('goHintBtn');
+        if(hintBtn){
+            const show=goSoloVsBot(gameState)&&goBotLevel(gameState)==='easy'&&gameState.players.some(p=>p?.id===gameState.myPlayerId);
+            hintBtn.classList.toggle('hidden',!show);
+            hintBtn.disabled=!(show&&myTurn);
+        }
 
         const sizeWrap=document.getElementById('goSizeWrap');
         if(sizeWrap){
@@ -165,4 +186,22 @@ function handleGoPointClick(idx){
     }else if(g.status==='scoring'){
         if(g.board[idx])requestGoToggleDead(idx);
     }
+}
+
+
+// Ask the strongest bot level for the best move and mark it on the board (or say "pass").
+function showGoHint(){
+    const g=gameState.go;
+    if(!g||g.status!=='in-progress'||!goSoloVsBot(gameState))return;
+    const color=goLocalColor();
+    if(!color||g.turn!==color)return;
+    const btn=document.getElementById('goHintBtn');
+    if(btn)btn.disabled=true;
+    setTimeout(()=>{
+        try{
+            const mv=chooseGoBotMove(gameState,'expert',{time:1800});
+            goHint={idx:mv.pass?null:mv.idx,key:goHintKey(g)};
+        }catch(e){goHint=null;}
+        renderTableUI();
+    },30);
 }

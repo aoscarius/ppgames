@@ -21,6 +21,17 @@
                   </div>
               </div>
 
+              <!-- Bot difficulty (host only, 1-vs-1 against a bot) -->
+              <div id="othelloBotLevelWrap" class="hidden w-full max-w-md flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                  <label for="othelloBotLevel" class="text-[11px] font-bold text-slate-300" data-i18n="othelloBotLevel">Bot level</label>
+                  <select id="othelloBotLevel" class="bg-slate-800 border border-slate-700 text-slate-100 text-xs font-bold rounded-lg px-2 py-1">
+                      <option value="easy" data-i18n="othelloLevel_easy">Easy</option>
+                      <option value="medium" data-i18n="othelloLevel_medium">Medium</option>
+                      <option value="hard" data-i18n="othelloLevel_hard">Hard</option>
+                      <option value="expert" data-i18n="othelloLevel_expert">Expert</option>
+                  </select>
+              </div>
+
               <div class="relative">
                   <div id="othelloBoard" class="othello-board"></div>
               </div>
@@ -47,9 +58,12 @@
                       <button id="startOthelloBtn" disabled class="items-center px-3.5 sm:px-5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold shadow transition">
                           <i class="fa-solid fa-circle"></i> <span data-i18n="startMatch">Start Match</span>
                       </button>
-                      <button id="othelloResignBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 text-xs font-extrabold transition" data-i18n="resign">
-                          Resign
-                      </button>
+                      <div class="flex items-center gap-1.5 sm:gap-2">
+                        <button id="othelloHintBtn" disabled class="hidden px-3 sm:px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="othelloHint">Hint</button>
+                        <button id="othelloResignBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 disabled:opacity-30 disabled:pointer-events-none text-rose-300 text-xs font-extrabold transition" data-i18n="resign">
+                            Resign
+                        </button>
+                      </div>
                   </div>
               </div>
           </div>

@@ -4,6 +4,9 @@
    gameState every time it changes.
    ======================================================================== */
 
+let othelloHint=null;   // {r,c,key} suggested move (local only, valid while the position is unchanged)
+const othelloBoardKey=os=>os.board.map(row=>row.map(c=>c||'.').join('')).join('')+os.turn;
+
 function othelloLocalColor(){ return othelloColorOf(gameState,gameState.myPlayerId); }
 
 function ensureOthelloSquares(){
@@ -53,6 +56,7 @@ function renderOthelloUI(){
         document.querySelectorAll('#othelloBoard .othello-square').forEach(el=>{
             const r=Number(el.dataset.r),c=Number(el.dataset.c);
             const cell=os.board[r][c];
+            el.classList.toggle('othello-hint',!!(othelloHint&&othelloHint.key===othelloBoardKey(os)&&othelloHint.r===r&&othelloHint.c===c));
             el.classList.toggle('othello-last-move',!!(os.lastMove&&os.lastMove.r===r&&os.lastMove.c===c));
             el.classList.toggle('othello-legal-hint',legalTargets.some(m=>m.r===r&&m.c===c));
             const disc=el.querySelector('.othello-disc');
@@ -78,6 +82,19 @@ function renderOthelloUI(){
             const canStart=gameState.isHost&&os.status!=='in-progress'&&othelloMatchPlayers(gameState).length>=2;
             startBtn.disabled=!canStart;
             startBtn.querySelector('span').textContent=os.status==='ended'?t('rematch'):t('startMatch');
+        }
+        // Bot level + "suggest a move": only in a 1-vs-1 game against a bot (hint: Easy level only).
+        const levelWrap=document.getElementById('othelloBotLevelWrap');
+        if(levelWrap){
+            levelWrap.classList.toggle('hidden',!(gameState.isHost&&othelloSoloVsBot(gameState)));
+            const sel=document.getElementById('othelloBotLevel');
+            if(sel&&sel.value!==othelloBotLevel(gameState))sel.value=othelloBotLevel(gameState);
+        }
+        const hintBtn=document.getElementById('othelloHintBtn');
+        if(hintBtn){
+            const show=othelloSoloVsBot(gameState)&&othelloBotLevel(gameState)==='easy'&&gameState.players.some(p=>p?.id===gameState.myPlayerId);
+            hintBtn.classList.toggle('hidden',!show);
+            hintBtn.disabled=!(show&&running&&os.turn===localColor);
         }
         const resignBtn=document.getElementById('othelloResignBtn');
         if(resignBtn)resignBtn.disabled=!(os.status==='in-progress'&&!!localColor);
@@ -119,4 +136,21 @@ function handleOthelloSquareClick(r,c){
     const localColor=othelloLocalColor();
     if(!localColor||os.turn!==localColor)return;
     requestOthelloMove(r,c);
+}
+
+// Ask the engine for the strongest move and highlight that square.
+function showOthelloHint(){
+    const os=gameState.othello;
+    if(!os||os.status!=='in-progress'||!othelloSoloVsBot(gameState))return;
+    const color=othelloLocalColor();
+    if(!color||os.turn!==color)return;
+    const btn=document.getElementById('othelloHintBtn');
+    if(btn)btn.disabled=true;
+    setTimeout(()=>{
+        try{
+            const mv=OthelloBot.chooseMove(os.board,color,'expert');
+            othelloHint=mv?{r:mv.r,c:mv.c,key:othelloBoardKey(os)}:null;
+        }catch(e){othelloHint=null;}
+        renderTableUI();
+    },30);
 }

@@ -22,3 +22,8 @@
 .go-stone-chip { width: 14px; height: 14px; border-radius: 999px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
 .go-stone-black { background: radial-gradient(circle at 35% 30%, #6b7280, #05070a 70%); }
 .go-stone-white { background: radial-gradient(circle at 35% 30%, #ffffff, #cbd5e1 70%); }
+
+/* Suggested move (Easy level hint) */
+.go-hint { fill: rgba(250, 204, 21, .18); stroke: rgba(250, 204, 21, .98); stroke-width: 2.5; pointer-events: none; animation: goHintPulse 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes goHintPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.85); opacity: .65; } }
+@media (prefers-reduced-motion: reduce) { .go-hint { animation: none; } }

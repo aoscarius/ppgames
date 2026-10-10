@@ -46,6 +46,7 @@ registerGame({
             broadcastState();
             renderTableUI();
         };
+        $('chessHintBtn').onclick=()=>showChessHint();
         $('startChessBtn').onclick=()=>{if(gameState.isHost)hostStartChessMatch();};
         $('resignBtn').onclick=()=>{
             showModal(t('titleResign'),t('confirmResign'),[

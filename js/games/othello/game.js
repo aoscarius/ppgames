@@ -6,6 +6,9 @@
 registerGame({
     id:'othello',
 
+    // Strength of the bot (see OTHELLO_BOT_LEVELS in bot.js); chosen by the host, synced to everyone.
+    stateDefaults(){ return {othelloBotLevel:'medium'}; },
+
     resetRoom(){ gameState.othello=defaultOthelloState(); },
     onTableReset(){ gameState.othello=defaultOthelloState(); },
     createPlayer(base){ return {id:base.id,name:base.name,isBot:!!base.isBot,disconnected:false}; },
@@ -34,6 +37,12 @@ registerGame({
 
     bind(){
         const $=id=>document.getElementById(id);
+        $('othelloBotLevel').onchange=e=>{
+            if(!gameState.isHost)return;
+            if(OTHELLO_BOT_LEVELS[e.target.value])gameState.othelloBotLevel=e.target.value;
+            broadcastState();renderTableUI();
+        };
+        $('othelloHintBtn').onclick=()=>showOthelloHint();
         $('startOthelloBtn').onclick=()=>{if(gameState.isHost)hostStartOthelloMatch();};
         $('othelloResignBtn').onclick=()=>{
             showModal(t('titleResign'),t('confirmResign'),[

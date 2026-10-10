@@ -20,6 +20,17 @@
                   </div>
               </div>
 
+              <!-- Bot difficulty (host only, 1-vs-1 against a bot) -->
+              <div id="goBotLevelWrap" class="hidden w-full max-w-md flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                  <label for="goBotLevel" class="text-[11px] font-bold text-slate-300" data-i18n="goBotLevel">Bot level</label>
+                  <select id="goBotLevel" class="bg-slate-800 border border-slate-700 text-slate-100 text-xs font-bold rounded-lg px-2 py-1">
+                      <option value="easy" data-i18n="goLevel_easy">Easy</option>
+                      <option value="medium" data-i18n="goLevel_medium">Medium</option>
+                      <option value="hard" data-i18n="goLevel_hard">Hard</option>
+                      <option value="expert" data-i18n="goLevel_expert">Expert</option>
+                  </select>
+              </div>
+              
               <div class="relative">
                   <div id="goBoard" class="go-board"></div>
               </div>
@@ -56,6 +67,7 @@
                           <i class="fa-solid fa-circle"></i> <span data-i18n="goStartMatch">Start Match</span>
                       </button>
                       <div class="flex items-center gap-1.5 sm:gap-2">
+                          <button id="goHintBtn" disabled class="hidden px-3 sm:px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="goHint">Hint</button>
                           <button id="goPassBtn" disabled class="px-3 sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="goPass">Pass</button>
                           <button id="goAcceptBtn" class="hidden px-3 sm:px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="goAccept">Accept</button>
                           <button id="goResumeBtn" class="hidden px-3 sm:px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-extrabold transition" data-i18n="goResume">Resume play</button>

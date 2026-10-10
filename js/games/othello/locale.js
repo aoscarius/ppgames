@@ -8,6 +8,12 @@
 registerLocale({
     en: {
         othelloRoom: 'Othello Room',
+        othelloBotLevel: 'Bot level',
+        othelloLevel_easy: 'Easy',
+        othelloLevel_medium: 'Medium',
+        othelloLevel_hard: 'Hard',
+        othelloLevel_expert: 'Expert',
+        othelloHint: 'Hint',
         othelloMatchStarted: 'The match has started.',
         othelloPassed: '{name} had no legal move and passed.',
         othelloWinResult: '{name} wins {winner}-{loser}.',
@@ -23,6 +29,12 @@ registerLocale({
     },
     it: {
         othelloRoom: 'Stanza Othello',
+        othelloBotLevel: 'Livello bot',
+        othelloLevel_easy: 'Facile',
+        othelloLevel_medium: 'Medio',
+        othelloLevel_hard: 'Difficile',
+        othelloLevel_expert: 'Esperto',
+        othelloHint: 'Suggerisci',
         othelloMatchStarted: 'La partita è iniziata.',
         othelloPassed: '{name} non aveva mosse legali ed è passato.',
         othelloWinResult: '{name} vince {winner}-{loser}.',

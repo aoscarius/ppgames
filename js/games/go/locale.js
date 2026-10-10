@@ -7,6 +7,13 @@
 registerLocale({
     en: {
         goRoom: 'Go Room',
+        goBotLevel: 'Bot level',
+        goLevel_easy: 'Easy',
+        goLevel_medium: 'Medium',
+        goLevel_hard: 'Hard',
+        goLevel_expert: 'Expert',
+        goHint: 'Hint',
+        goHintPass: 'Suggestion: pass',
         goInProgress: 'In Progress',
         goMatchOver: 'Match Over',
         goScoring: 'Scoring',
@@ -44,6 +51,13 @@ registerLocale({
     },
     it: {
         goRoom: 'Stanza Go',
+        goBotLevel: 'Livello bot',
+        goLevel_easy: 'Facile',
+        goLevel_medium: 'Medio',
+        goLevel_hard: 'Difficile',
+        goLevel_expert: 'Esperto',
+        goHint: 'Suggerisci',
+        goHintPass: 'Suggerimento: passa',
         goInProgress: 'In Corso',
         goMatchOver: 'Partita Finita',
         goScoring: 'Conteggio',
